@@ -1,73 +1,148 @@
-# React + TypeScript + Vite
+# TraceChain — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Interfaz web para el sistema de trazabilidad agroalimentaria TraceChain. Construida en React + TypeScript + Vite, consume la API REST del backend.
 
-Currently, two official plugins are available:
+## Requisitos previos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+Tener instalado:
+- [Node.js v20+](https://nodejs.org)
+- [pnpm](https://pnpm.io) — `npm install -g pnpm`
+- Backend corriendo en `http://localhost:3000`
 
-## React Compiler
+## Setup inicial
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### 1. Clonar el repositorio
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+git clone https://github.com/tu-org/tracechain-frontend.git
+cd tracechain-frontend
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 2. Instalar dependencias
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+pnpm install
+```
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 3. Crear el archivo de variables de entorno
+
+```bash
+cp .env.example .env
+```
+
+### 4. Arrancar el servidor de desarrollo
+
+```bash
+pnpm dev
+```
+
+App en `http://localhost:5173`
+
+---
+
+## Scripts disponibles
+
+| Comando | Descripción |
+|---|---|
+| `pnpm dev` | Servidor de desarrollo con hot reload |
+| `pnpm build` | Build de producción |
+| `pnpm preview` | Preview del build de producción |
+| `pnpm lint` | Linter ESLint |
+
+---
+
+## Stack
+
+| Capa | Tecnología |
+|---|---|
+| Framework | React 19 + TypeScript |
+| Bundler | Vite |
+| Estilos | Tailwind CSS |
+| Routing | React Router DOM v7 |
+| HTTP | Axios |
+| Estado servidor | TanStack React Query |
+| Package manager | pnpm |
+
+---
+
+## Variables de entorno
+
+```
+VITE_API_URL=http://localhost:3000/api
+```
+
+---
+
+## Estructura del proyecto
+
+```
+tracechain-frontend/
+├── src/
+│   ├── api/              ← cliente axios y llamadas al backend
+│   ├── components/
+│   │   ├── ui/           ← componentes reutilizables (Button, Input, Table, Badge)
+│   │   └── layout/       ← Sidebar, Navbar, Layout principal
+│   ├── pages/
+│   │   ├── auth/         ← Login
+│   │   ├── dashboard/    ← Dashboard con KPIs y alertas
+│   │   ├── lots/         ← Lista, detalle y creación de lotes
+│   │   ├── movements/    ← Movimientos de lotes
+│   │   └── audit/        ← Bitácora de auditoría
+│   ├── hooks/            ← custom hooks con React Query
+│   ├── types/            ← tipos TypeScript
+│   ├── utils/            ← helpers
+│   ├── App.tsx
+│   └── main.tsx
+├── public/
+├── index.html
+├── vite.config.ts
+├── tsconfig.json
+├── .env.example
+└── package.json
+```
+
+---
+
+## Flujo de trabajo Git
+
+```
+master    → código estable / entregas
+develop   → integración del equipo
+feature/* → trabajo individual por módulo
+```
+
+Nunca hacer push directo a `master` o `develop`. Todo va por Pull Request.
+
+```bash
+# Antes de empezar a trabajar
+git checkout develop
+git pull origin develop
+git checkout -b feature/nombre-de-la-tarea
+
+# Al terminar
+git push origin feature/nombre-de-la-tarea
+# → abrir PR hacia develop en GitHub
+```
+
+### Convención de commits
+
+```
+feat: descripción      → nueva funcionalidad
+fix: descripción       → corrección de bug
+chore: descripción     → configuración, dependencias
+docs: descripción      → documentación
+style: descripción     → cambios de estilos
+```
+
+---
+
+## Conexión con el backend
+
+El frontend consume la API REST del backend en `http://localhost:3000`. Asegúrate de que el backend esté corriendo antes de arrancar el frontend.
+
+Para arrancar el backend:
+```bash
+cd ../tracechain-backend
+docker compose up -d
+pnpm dev
 ```
