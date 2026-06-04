@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getUsersGlobal, createUser, updateUser, deleteUser, promoteSuperAdmin } from '../../api/users'
+import { getUsersGlobal, createUser, updateUser, deleteUser } from '../../api/users'
 import { getOrganizations } from '../../api/organizations'
 import { useAuth } from '../../hooks/useAuth'
 import { getRolesByOrg } from '../../api/roles'
@@ -26,10 +26,9 @@ export default function GlobalUsersPage() {
   const [form, setForm] = useState(initialForm)
   const [formError, setFormError] = useState('')
   const [editUser, setEditUser] = useState<GlobalUser | null>(null)
-  const [editForm, setEditForm] = useState({ name: '', roleId: '' })
+  const [editForm, setEditForm] = useState({ name: '', roleId: '', organizationId: '', isSuperAdmin: false })
   const [editError, setEditError] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
-  const [promoteConfirm, setPromoteConfirm] = useState<GlobalUser | null>(null)
   const [orgRoles, setOrgRoles] = useState<DynamicRole[]>([])
   const [editOrgRoles, setEditOrgRoles] = useState<DynamicRole[]>([])
 
@@ -58,12 +57,29 @@ export default function GlobalUsersPage() {
     }
   }
 
-  const handleEditOrgLoad = async (orgId: string | null | undefined) => {
+  const handleEditOrgChange = async (orgId: string) => {
+    setEditForm((f) => ({ ...f, organizationId: orgId, roleId: '' }))
     if (orgId) {
       try {
         const roles = await getRolesByOrg(orgId)
         setEditOrgRoles(roles)
       } catch { setEditOrgRoles([]) }
+    } else {
+      setEditOrgRoles([])
+    }
+  }
+
+  const loadEditRoles = async (orgId: string) => {
+    if (!orgId) {
+      setEditOrgRoles([])
+      return
+    }
+
+    try {
+      const roles = await getRolesByOrg(orgId)
+      setEditOrgRoles(roles)
+    } catch {
+      setEditOrgRoles([])
     }
   }
 
@@ -74,7 +90,7 @@ export default function GlobalUsersPage() {
   })
 
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: { name: string; roleId: string } }) => updateUser(id, data),
+    mutationFn: ({ id, data }: { id: string; data: { name: string; roleId: string | null; organizationId: string | null; isSuperAdmin: boolean } }) => updateUser(id, data),
     onSuccess: () => { invalidate(); setEditUser(null); setEditError(''); notify.success('Usuario actualizado') },
     onError: (e: unknown) => { setEditError(getApiMessage(e, 'Error al actualizar')); notify.apiError(e) },
   })
@@ -85,17 +101,17 @@ export default function GlobalUsersPage() {
     onError: (e) => notify.apiError(e),
   })
 
-  const promoteMutation = useMutation({
-    mutationFn: promoteSuperAdmin,
-    onSuccess: () => { invalidate(); setPromoteConfirm(null); notify.success('Usuario promovido a Super Admin') },
-    onError: (e: unknown) => notify.apiError(e),
-  })
-
   const openEdit = (user: GlobalUser) => {
     setEditUser(user)
-    setEditForm({ name: user.name, roleId: user.role?.id ?? '' })
+    const organizationId = user.organization?.id ?? user.organizationId ?? ''
+    setEditForm({
+      name: user.name,
+      roleId: user.role?.id ?? '',
+      organizationId,
+      isSuperAdmin: user.isSuperAdmin ?? false,
+    })
     setEditError('')
-    handleEditOrgLoad(user.organization?.id ?? user.organizationId)
+    loadEditRoles(organizationId)
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -110,7 +126,17 @@ export default function GlobalUsersPage() {
     e.preventDefault()
     if (!editUser) return
     setEditError('')
-    updateMutation.mutate({ id: editUser.id, data: editForm })
+    if (!editForm.isSuperAdmin && !editForm.organizationId) { setEditError('Selecciona una organización.'); return }
+    if (!editForm.isSuperAdmin && !editForm.roleId) { setEditError('Selecciona un rol.'); return }
+    updateMutation.mutate({
+      id: editUser.id,
+      data: {
+        name: editForm.name,
+        organizationId: editForm.organizationId || null,
+        roleId: editForm.roleId || null,
+        isSuperAdmin: editForm.isSuperAdmin,
+      },
+    })
   }
 
   return (
@@ -182,32 +208,28 @@ export default function GlobalUsersPage() {
                     </div>
                   </td>
                   <td className="px-4 py-3">
-                    {user.isSuperAdmin ? (
-                      <Badge color="bg-purple-100 text-purple-700">Plataforma</Badge>
-                    ) : (
-                      <span className="text-gray-700">{user.organization?.name ?? '—'}</span>
-                    )}
+                    <span className="text-gray-700">{user.organization?.name ?? 'Plataforma'}</span>
                   </td>
                   <td className="px-4 py-3">
-                    {user.isSuperAdmin ? (
-                      <Badge color="bg-purple-100 text-purple-700">Super Admin</Badge>
-                    ) : user.role ? (
-                      <Badge color={getRoleColor(user.role.name)}>{user.role.name}</Badge>
-                    ) : (
-                      <span className="text-gray-400 text-xs">—</span>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {user.isSuperAdmin && <Badge color="bg-purple-100 text-purple-700">Super Admin</Badge>}
+                      {user.role ? (
+                        <Badge color={getRoleColor(user.role.name)}>{user.role.name}</Badge>
+                      ) : !user.isSuperAdmin ? (
+                        <span className="text-gray-400 text-xs">—</span>
+                      ) : null}
+                    </div>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {new Date(user.createdAt).toLocaleDateString('es-CO')}
                   </td>
                   <td className="px-4 py-3">
-                    {!user.isSuperAdmin && (
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => openEdit(user)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Editar</button>
-                        <button onClick={() => setPromoteConfirm(user)} className="text-purple-600 hover:text-purple-800 text-xs font-medium">Super Admin</button>
+                    <div className="flex items-center gap-3">
+                      <button onClick={() => openEdit(user)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Editar</button>
+                      {!user.isSuperAdmin && (
                         <button onClick={() => setDeleteConfirm(user.id)} className="text-red-500 hover:text-red-700 text-xs font-medium">Eliminar</button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -277,18 +299,41 @@ export default function GlobalUsersPage() {
             {editError && <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{editError}</p>}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Organización</label>
-              <input disabled value={editUser.organization?.name ?? '—'} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400" />
+              <select
+                value={editForm.organizationId}
+                onChange={(e) => handleEditOrgChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">Plataforma / sin organización</option>
+                {orgs.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
               <input required value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
             </div>
+            <label className="flex items-start gap-3 rounded-lg border border-purple-100 bg-purple-50 px-3 py-2">
+              <input
+                type="checkbox"
+                checked={editForm.isSuperAdmin}
+                onChange={(e) => setEditForm({ ...editForm, isSuperAdmin: e.target.checked })}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
+              />
+              <span>
+                <span className="block text-sm font-medium text-purple-800">Super Admin</span>
+                <span className="block text-xs text-purple-600">Acceso completo a la plataforma. La organización y el rol quedan como metadatos del usuario.</span>
+              </span>
+            </label>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Rol</label>
-              <select value={editForm.roleId} onChange={(e) => setEditForm({ ...editForm, roleId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
-                <option value="">Sin cambio</option>
+              <select
+                value={editForm.roleId}
+                onChange={(e) => setEditForm({ ...editForm, roleId: e.target.value })}
+                disabled={!editForm.organizationId}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 disabled:bg-gray-100"
+              >
+                <option value="">{editForm.organizationId ? (editForm.isSuperAdmin ? 'Opcional para Super Admin' : 'Selecciona un rol') : 'Selecciona organización primero'}</option>
                 {editOrgRoles.map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
               </select>
             </div>
@@ -299,30 +344,6 @@ export default function GlobalUsersPage() {
               </button>
             </div>
           </form>
-        </Modal>
-      )}
-
-      {/* Confirmar promover a super admin */}
-      {promoteConfirm && (
-        <Modal title="Promover a Super Admin" onClose={() => setPromoteConfirm(null)} size="sm" sheet={false}>
-          <div className="p-6 space-y-4">
-            <p className="text-sm text-gray-600">
-              <strong>{promoteConfirm.name}</strong> ganará acceso completo a la plataforma y perderá su rol y organización actuales.
-            </p>
-            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-              Esta acción es irreversible desde la UI. El usuario pasará a ser Super Admin.
-            </p>
-            <div className="flex gap-3">
-              <button onClick={() => setPromoteConfirm(null)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm">Cancelar</button>
-              <button
-                onClick={() => promoteMutation.mutate(promoteConfirm.id)}
-                disabled={promoteMutation.isPending}
-                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-60"
-              >
-                {promoteMutation.isPending ? 'Promoviendo...' : 'Confirmar'}
-              </button>
-            </div>
-          </div>
         </Modal>
       )}
 

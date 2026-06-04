@@ -87,11 +87,12 @@ function App() {
                     <UsersPage />
                   </PermissionRoute>
                 } />
-                <Route path="roles" element={
+                <Route path="roles" element={<Navigate to="/admin/roles" />} />
+                <Route path="billing" element={<PlanPage />} />
+                {/* Admin — solo super admin */}
+                <Route path="admin/roles" element={
                   <SuperAdminRoute><RolesPage /></SuperAdminRoute>
                 } />
-                <Route path="billing" element={<PlanPage />} />
-                {/* Plataforma — solo super admin */}
                 <Route path="admin/plans" element={
                   <SuperAdminRoute><PlansPage /></SuperAdminRoute>
                 } />
@@ -101,6 +102,9 @@ function App() {
                 <Route path="admin/users" element={
                   <SuperAdminRoute><GlobalUsersPage /></SuperAdminRoute>
                 } />
+                <Route path="admin/usuarios" element={<Navigate to="/admin/users" />} />
+                <Route path="admin/organizaciones" element={<Navigate to="/admin/organizations" />} />
+                <Route path="admin/planes" element={<Navigate to="/admin/plans" />} />
               </Route>
               <Route path="*" element={<NotFoundPage />} />
             </Routes>

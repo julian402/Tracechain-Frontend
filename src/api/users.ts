@@ -6,6 +6,11 @@ export const getUsers = async () => {
   return res.data.data
 }
 
+export const getUsersByOrg = async (organizationId: string) => {
+  const res = await client.get<ApiResponse<User[]>>('/users', { params: { organizationId } })
+  return res.data.data
+}
+
 export const getUsersGlobal = async () => {
   const res = await client.get<ApiResponse<User[]>>('/users?scope=all')
   return res.data.data
@@ -16,17 +21,12 @@ export const createUser = async (data: { name: string; email: string; password: 
   return res.data.data
 }
 
-export const promoteSuperAdmin = async (id: string) => {
-  const res = await client.patch<ApiResponse<User>>(`/users/${id}/super-admin`)
-  return res.data.data
-}
-
 export const getUserById = async (id: string) => {
   const res = await client.get<ApiResponse<User>>(`/users/${id}`)
   return res.data.data
 }
 
-export const updateUser = async (id: string, data: { name?: string; roleId?: string }) => {
+export const updateUser = async (id: string, data: { name?: string; roleId?: string | null; organizationId?: string | null; isSuperAdmin?: boolean }) => {
   const res = await client.patch<ApiResponse<User>>(`/users/${id}`, data)
   return res.data.data
 }

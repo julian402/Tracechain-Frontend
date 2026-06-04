@@ -2,14 +2,16 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { getMovements, createMovement } from '../../api/movements'
 import { getLots } from '../../api/lots'
-import { downloadMovementsCSV } from '../../api/reports'
+import { downloadMovementsCSV, downloadMovementsPDF } from '../../api/reports'
 import { usePermissions } from '../../hooks/usePermissions'
+import { useAuth } from '../../hooks/useAuth'
 import { notify } from '../../lib/toast'
 import { TableRowSkeleton } from '../../components/ui/Skeleton'
 import { Pagination } from '../../components/ui/Pagination'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { ReportDownloadMenu } from '../../components/ui/ReportDownloadMenu'
 import { MOVEMENT_TYPE_COLORS, MOVEMENT_TYPE_LABELS } from '../../lib/constants'
 import type { Movement } from '../../types'
 
@@ -27,15 +29,9 @@ const initialForm = {
 export default function MovementsPage() {
   const queryClient = useQueryClient()
   const { can } = usePermissions()
+  const { organization, isSuperAdmin } = useAuth()
   const [page, setPage] = useState(1)
-  const [exporting, setExporting] = useState(false)
-
-  const handleExportCSV = async () => {
-    setExporting(true)
-    try { await downloadMovementsCSV(); notify.success('CSV movimientos descargado') }
-    catch (e) { notify.apiError(e) }
-    finally { setExporting(false) }
-  }
+  const reportsEnabled = isSuperAdmin || (organization?.plan?.features as Record<string, boolean> | undefined)?.reports === true
   const [filterType, setFilterType] = useState('')
   const [filterLot, setFilterLot] = useState('')
   const [filterFrom, setFilterFrom] = useState('')
@@ -105,14 +101,13 @@ export default function MovementsPage() {
         <h1 className="text-xl font-bold text-gray-900">Movimientos</h1>
         <div className="flex items-center gap-2">
           {can('reports:read') && (
-            <button
-              onClick={handleExportCSV}
-              disabled={exporting}
-              title="Exportar CSV"
-              className="border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1 shrink-0"
-            >
-              <span>↓</span> {exporting ? '...' : 'CSV'}
-            </button>
+            <ReportDownloadMenu
+              disabled={!reportsEnabled}
+              options={[
+                { label: 'Movimientos CSV', description: 'Hoja de cálculo', action: downloadMovementsCSV },
+                { label: 'Movimientos PDF', description: 'Reporte imprimible', action: downloadMovementsPDF },
+              ]}
+            />
           )}
           <button
             onClick={() => setShowForm(true)}
@@ -296,7 +291,7 @@ export default function MovementsPage() {
                   onChange={(e) => setForm({ ...form, type: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
-                  {Object.entries(movementLabels).map(([value, label]) => (
+                  {Object.entries(MOVEMENT_TYPE_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>{label}</option>
                   ))}
                 </select>

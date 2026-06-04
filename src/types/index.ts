@@ -37,6 +37,7 @@ export interface User {
   email: string
   role?: { id: string; name: string } | null
   organizationId?: string | null
+  organization?: Pick<Organization, 'id' | 'name' | 'slug'> | null
   isSuperAdmin?: boolean
   createdAt: string
   updatedAt: string

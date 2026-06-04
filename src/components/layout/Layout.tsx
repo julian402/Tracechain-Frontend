@@ -92,7 +92,7 @@ export default function Layout() {
   const platformNavItems: NavItem[] = isSuperAdmin ? [
     { label: 'Organizaciones', path: '/admin/organizations', icon: <OrgsIcon /> },
     { label: 'Usuarios',       path: '/admin/users',         icon: <GlobalUsersIcon /> },
-    { label: 'Roles',          path: '/roles',               icon: <RolesIcon /> },
+    { label: 'Roles',          path: '/admin/roles',         icon: <RolesIcon /> },
     { label: 'Planes',         path: '/admin/plans',         icon: <PlansIcon /> },
   ] : []
 
@@ -198,11 +198,11 @@ export default function Layout() {
 
         {/* Nav principal */}
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {/* Sección Plataforma — solo super admin, aparece primero */}
+          {/* Sección Admin — solo super admin, aparece primero */}
           {platformNavItems.length > 0 && (
             <>
               <div className={['pb-1', collapsed ? 'md:hidden' : ''].join(' ')}>
-                <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Plataforma</p>
+                <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Admin</p>
               </div>
               {collapsed && <div className="border-t border-gray-100 my-2" />}
               {platformNavItems.map(navLink)}

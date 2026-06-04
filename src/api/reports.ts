@@ -24,6 +24,11 @@ export const downloadMovementsCSV = async () => {
   downloadBlob(res.data, `movimientos-${new Date().toISOString().slice(0, 10)}.csv`)
 }
 
+export const downloadMovementsPDF = async () => {
+  const res = await client.get('/reports/movements/pdf', { responseType: 'blob' })
+  downloadBlob(res.data, `movimientos-${new Date().toISOString().slice(0, 10)}.pdf`)
+}
+
 export const downloadAuditCSV = async () => {
   const res = await client.get('/reports/audit/csv', { responseType: 'blob' })
   downloadBlob(res.data, `auditoria-${new Date().toISOString().slice(0, 10)}.csv`)

@@ -4,11 +4,17 @@ interface ModalProps {
   title: string
   onClose: () => void
   children: ReactNode
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl'
   sheet?: boolean
 }
 
-const sizeClasses = { sm: 'sm:max-w-sm', md: 'sm:max-w-md', lg: 'sm:max-w-lg' }
+const sizeClasses = {
+  sm: 'sm:max-w-sm',
+  md: 'sm:max-w-md',
+  lg: 'sm:max-w-lg',
+  xl: 'sm:max-w-2xl',
+  '2xl': 'sm:max-w-4xl',
+}
 
 export function Modal({ title, onClose, children, size = 'md', sheet = true }: ModalProps) {
   return (

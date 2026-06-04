@@ -4,12 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import { getLots, createLot } from '../../api/lots'
 import { downloadLotsCSV, downloadLotsPDF } from '../../api/reports'
 import { usePermissions } from '../../hooks/usePermissions'
+import { useAuth } from '../../hooks/useAuth'
 import { notify } from '../../lib/toast'
 import { TableRowSkeleton } from '../../components/ui/Skeleton'
 import { Pagination } from '../../components/ui/Pagination'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { EmptyState } from '../../components/ui/EmptyState'
+import { ReportDownloadMenu } from '../../components/ui/ReportDownloadMenu'
 import { LOT_STATUS_COLORS, LOT_STATUS_LABELS } from '../../lib/constants'
 import type { Lot } from '../../types'
 
@@ -32,20 +34,14 @@ export default function LotsPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { can } = usePermissions()
+  const { organization, isSuperAdmin } = useAuth()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(initialForm)
   const [formError, setFormError] = useState('')
-  const [exporting, setExporting] = useState('')
-
-  const handleExport = async (fn: () => Promise<void>, label: string) => {
-    setExporting(label)
-    try { await fn(); notify.success(`${label} descargado`) }
-    catch (e) { notify.apiError(e) }
-    finally { setExporting('') }
-  }
+  const reportsEnabled = isSuperAdmin || (organization?.plan?.features as Record<string, boolean> | undefined)?.reports === true
 
   const { data, isLoading } = useQuery({
     queryKey: ['lots', search, status, page],
@@ -102,24 +98,13 @@ export default function LotsPage() {
         <h1 className="text-xl font-bold text-gray-900">Lotes</h1>
         <div className="flex items-center gap-2">
           {can('reports:read') && (
-            <>
-              <button
-                onClick={() => handleExport(downloadLotsCSV, 'CSV lotes')}
-                disabled={!!exporting}
-                title="Exportar CSV"
-                className="border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1"
-              >
-                <span>↓</span> {exporting === 'CSV lotes' ? '...' : 'CSV'}
-              </button>
-              <button
-                onClick={() => handleExport(downloadLotsPDF, 'PDF lotes')}
-                disabled={!!exporting}
-                title="Exportar PDF"
-                className="border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1"
-              >
-                <span>↓</span> {exporting === 'PDF lotes' ? '...' : 'PDF'}
-              </button>
-            </>
+            <ReportDownloadMenu
+              disabled={!reportsEnabled}
+              options={[
+                { label: 'Lotes CSV', description: 'Hoja de cálculo', action: downloadLotsCSV },
+                { label: 'Lotes PDF', description: 'Reporte imprimible', action: downloadLotsPDF },
+              ]}
+            />
           )}
           <button
             onClick={() => setShowForm(true)}
