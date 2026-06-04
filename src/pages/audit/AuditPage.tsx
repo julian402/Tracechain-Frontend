@@ -3,19 +3,12 @@ import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { getAuditLogs } from '../../api/audit'
 import { TableRowSkeleton } from '../../components/ui/Skeleton'
 import { Pagination } from '../../components/ui/Pagination'
+import { Badge } from '../../components/ui/Badge'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { AUDIT_ACTION_COLORS } from '../../lib/constants'
 import type { AuditLog } from '../../types'
 
 const PAGE_SIZE = 15
-
-const actionColors: Record<string, string> = {
-  CREATE: 'bg-green-100 text-green-700',
-  UPDATE: 'bg-blue-100 text-blue-700',
-  DELETE: 'bg-red-100 text-red-700',
-  VISITA_EXTERNA: 'bg-indigo-100 text-indigo-700',
-  HALLAZGO_NO_CONFORMIDAD: 'bg-red-100 text-red-700',
-  HALLAZGO_OBSERVACION: 'bg-yellow-100 text-yellow-700',
-  HALLAZGO_OPORTUNIDAD: 'bg-purple-100 text-purple-700',
-}
 
 export default function AuditPage() {
   const [formAction, setFormAction] = useState('')
@@ -127,7 +120,7 @@ export default function AuditPage() {
             </tbody>
           </table>
         ) : logs.length === 0 ? (
-          <p className="p-6 text-sm text-gray-500">No hay registros en la bitácora</p>
+          <EmptyState message="No hay registros en la bitácora" />
         ) : (
           <>
           {/* Tabla — desktop */}
@@ -145,9 +138,9 @@ export default function AuditPage() {
               {logs.map((log: AuditLog) => (
                 <tr key={log.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${actionColors[log.action] ?? 'bg-gray-100 text-gray-700'}`}>
+                    <Badge color={AUDIT_ACTION_COLORS[log.action] ?? 'bg-gray-100 text-gray-700'}>
                       {log.action}
-                    </span>
+                    </Badge>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{log.entity}</td>
                   <td className="px-4 py-3 text-xs font-mono text-gray-500">{log.lot?.code ?? '—'}</td>

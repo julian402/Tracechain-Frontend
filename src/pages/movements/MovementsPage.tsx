@@ -5,27 +5,13 @@ import { getLots } from '../../api/lots'
 import { notify } from '../../lib/toast'
 import { TableRowSkeleton } from '../../components/ui/Skeleton'
 import { Pagination } from '../../components/ui/Pagination'
+import { Badge } from '../../components/ui/Badge'
+import { Modal } from '../../components/ui/Modal'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { MOVEMENT_TYPE_COLORS, MOVEMENT_TYPE_LABELS } from '../../lib/constants'
 import type { Movement } from '../../types'
 
 const PAGE_SIZE = 10
-
-const movementLabels: Record<string, string> = {
-  CREATED: 'Creado',
-  TRANSFERRED: 'Traslado',
-  TRANSFORMED: 'Transformado',
-  SPLIT: 'Fraccionado',
-  MERGED: 'Mezclado',
-  STATUS_CHANGED: 'Cambio de estado'
-}
-
-const movementColors: Record<string, string> = {
-  CREATED: 'bg-green-100 text-green-700',
-  TRANSFERRED: 'bg-blue-100 text-blue-700',
-  TRANSFORMED: 'bg-purple-100 text-purple-700',
-  SPLIT: 'bg-orange-100 text-orange-700',
-  MERGED: 'bg-pink-100 text-pink-700',
-  STATUS_CHANGED: 'bg-yellow-100 text-yellow-700'
-}
 
 const initialForm = {
   lotId: '',
@@ -189,7 +175,7 @@ export default function MovementsPage() {
           </div>
           </>
         ) : movements.length === 0 ? (
-          <p className="p-6 text-sm text-gray-500">No hay movimientos registrados</p>
+          <EmptyState message="No hay movimientos registrados" />
         ) : (
           <>
           {/* Tabla — desktop */}
@@ -208,12 +194,12 @@ export default function MovementsPage() {
               {movements.map((movement: Movement) => (
                 <tr key={movement.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${movementColors[movement.type]}`}>
-                      {movementLabels[movement.type]}
-                    </span>
+                    <Badge color={MOVEMENT_TYPE_COLORS[movement.type]}>
+                      {MOVEMENT_TYPE_LABELS[movement.type]}
+                    </Badge>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs text-gray-600">
-                    {(movement as any).lot?.code ?? movement.lotId.slice(0, 8)}
+                    {movement.lot?.code ?? movement.lotId.slice(0, 8)}
                   </td>
                   <td className="px-4 py-3 text-gray-700 max-w-xs truncate">{movement.description}</td>
                   <td className="px-4 py-3 text-gray-600">
@@ -244,7 +230,7 @@ export default function MovementsPage() {
                 </div>
                 <p className="text-sm text-gray-700 line-clamp-2">{movement.description}</p>
                 <div className="flex items-center gap-3 text-xs text-gray-500">
-                  <span className="font-mono">{(movement as any).lot?.code ?? movement.lotId.slice(0, 8)}</span>
+                  <span className="font-mono">{movement.lot?.code ?? movement.lotId.slice(0, 8)}</span>
                   {movement.quantity != null && <span>{movement.quantity}</span>}
                   {movement.fromLocation && <span>{movement.fromLocation} → {movement.toLocation}</span>}
                 </div>
@@ -259,12 +245,7 @@ export default function MovementsPage() {
 
       {/* Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">Registrar movimiento</h2>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
-            </div>
+        <Modal title="Registrar movimiento" onClose={() => setShowForm(false)}>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {formError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{formError}</div>
@@ -279,7 +260,7 @@ export default function MovementsPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                 >
                   <option value="">Seleccionar lote...</option>
-                  {lots.map((lot: any) => (
+                  {lots.map((lot) => (
                     <option key={lot.id} value={lot.id}>{lot.name} — {lot.code}</option>
                   ))}
                 </select>
@@ -357,8 +338,7 @@ export default function MovementsPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

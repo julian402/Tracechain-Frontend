@@ -5,21 +5,10 @@ import { getLotById, getLotTree, changeLotStatus, updateLot } from '../../api/lo
 import { getQrImage } from '../../api/qr'
 import { notify } from '../../lib/toast'
 import { Skeleton } from '../../components/ui/Skeleton'
+import { Badge } from '../../components/ui/Badge'
+import { Modal } from '../../components/ui/Modal'
+import { LOT_STATUS_COLORS, LOT_STATUS_LABELS, MOVEMENT_TYPE_LABELS } from '../../lib/constants'
 import type { Lot } from '../../types'
-
-const statusColors: Record<string, string> = {
-  ACTIVE: 'bg-green-100 text-green-700',
-  EXPIRED: 'bg-red-100 text-red-700',
-  QUARANTINE: 'bg-yellow-100 text-yellow-700',
-  DEPLETED: 'bg-gray-100 text-gray-700'
-}
-const statusLabels: Record<string, string> = {
-  ACTIVE: 'Activo', EXPIRED: 'Vencido', QUARANTINE: 'Cuarentena', DEPLETED: 'Agotado'
-}
-const movementLabels: Record<string, string> = {
-  CREATED: 'Creado', TRANSFERRED: 'Traslado', TRANSFORMED: 'Transformado',
-  SPLIT: 'Fraccionado', MERGED: 'Mezclado', STATUS_CHANGED: 'Cambio de estado'
-}
 
 export default function LotDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -134,9 +123,9 @@ export default function LotDetailPage() {
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <h1 className="text-xl font-bold text-gray-900">{lot.name}</h1>
-            <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[lot.status]}`}>
-              {statusLabels[lot.status]}
-            </span>
+            <Badge color={LOT_STATUS_COLORS[lot.status]}>
+              {LOT_STATUS_LABELS[lot.status]}
+            </Badge>
           </div>
           <p className="text-sm text-gray-500 font-mono">{lot.code}</p>
         </div>
@@ -229,7 +218,7 @@ export default function LotDetailPage() {
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <p className="text-sm font-medium text-gray-900">
-                          {movementLabels[movement.type] ?? movement.type}
+                          {MOVEMENT_TYPE_LABELS[movement.type] ?? movement.type}
                         </p>
                         <p className="text-xs text-gray-500">
                           {new Date(movement.createdAt).toLocaleDateString('es-CO')}
@@ -325,12 +314,7 @@ export default function LotDetailPage() {
 
       {/* Modal editar lote */}
       {showEdit && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">Editar lote</h2>
-              <button onClick={() => setShowEdit(false)} className="text-gray-400 hover:text-gray-600">✕</button>
-            </div>
+        <Modal title="Editar lote" onClose={() => setShowEdit(false)} size="lg" sheet={false}>
             <form
               onSubmit={(e) => { e.preventDefault(); editMutation.mutate(editForm) }}
               className="p-6 space-y-4"
@@ -443,8 +427,7 @@ export default function LotDetailPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

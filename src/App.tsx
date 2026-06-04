@@ -5,6 +5,7 @@ import { Toaster } from 'sonner'
 import { useAuth } from './hooks/useAuth'
 import { ScrollToTop } from './components/ScrollToTop'
 import Layout from './components/layout/Layout'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 const LoginPage       = lazy(() => import('./pages/auth/LoginPage'))
 const DashboardPage   = lazy(() => import('./pages/dashboard/DashboardPage'))
@@ -48,6 +49,7 @@ function App() {
       <BrowserRouter>
         <Toaster position="top-right" richColors />
         <ScrollToTop />
+        <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
           <Routes>
             <Route path="/login" element={<LoginPage />} />
@@ -75,6 +77,7 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
         </Suspense>
+        </ErrorBoundary>
       </BrowserRouter>
     </QueryClientProvider>
   )

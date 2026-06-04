@@ -5,23 +5,13 @@ import { getLots, createLot } from '../../api/lots'
 import { notify } from '../../lib/toast'
 import { TableRowSkeleton } from '../../components/ui/Skeleton'
 import { Pagination } from '../../components/ui/Pagination'
+import { Badge } from '../../components/ui/Badge'
+import { Modal } from '../../components/ui/Modal'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { LOT_STATUS_COLORS, LOT_STATUS_LABELS } from '../../lib/constants'
 import type { Lot } from '../../types'
 
 const PAGE_SIZE = 10
-
-const statusColors: Record<string, string> = {
-  ACTIVE: 'bg-green-100 text-green-700',
-  EXPIRED: 'bg-red-100 text-red-700',
-  QUARANTINE: 'bg-yellow-100 text-yellow-700',
-  DEPLETED: 'bg-gray-100 text-gray-700'
-}
-
-const statusLabels: Record<string, string> = {
-  ACTIVE: 'Activo',
-  EXPIRED: 'Vencido',
-  QUARANTINE: 'Cuarentena',
-  DEPLETED: 'Agotado'
-}
 
 const initialForm = {
   name: '',
@@ -145,7 +135,7 @@ export default function LotsPage() {
             </tbody>
           </table>
         ) : lots.length === 0 ? (
-          <p className="p-6 text-sm text-gray-500">No hay lotes registrados</p>
+          <EmptyState message="No hay lotes registrados" />
         ) : (
           <>
           {/* Tabla — desktop */}
@@ -167,9 +157,9 @@ export default function LotsPage() {
                   <td className="px-4 py-3 font-medium text-gray-900">{lot.name}</td>
                   <td className="px-4 py-3 text-gray-600">{lot.quantity} {lot.unit}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[lot.status]}`}>
-                      {statusLabels[lot.status]}
-                    </span>
+                    <Badge color={LOT_STATUS_COLORS[lot.status]}>
+                      {LOT_STATUS_LABELS[lot.status]}
+                    </Badge>
                   </td>
                   <td className="px-4 py-3 text-gray-600">
                     {new Date(lot.expirationDate).toLocaleDateString('es-CO')}
@@ -221,12 +211,7 @@ export default function LotsPage() {
 
       {/* Modal crear lote */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">Nuevo lote</h2>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
-            </div>
+        <Modal title="Nuevo lote" onClose={() => setShowForm(false)} size="lg">
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {formError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{formError}</div>
@@ -352,8 +337,7 @@ export default function LotsPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

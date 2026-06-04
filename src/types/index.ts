@@ -43,6 +43,7 @@ export interface Movement {
   fromLocation?: string
   toLocation?: string
   lotId: string
+  lot?: Pick<Lot, 'id' | 'code' | 'name'>
   createdById: string
   createdBy?: Pick<User, 'id' | 'name' | 'email'>
   createdAt: string
@@ -74,6 +75,33 @@ export interface DashboardStats {
   recentLots: Lot[]
   activeAlerts: Lot[]
   lotsByMonth: { mes: string; lotes: number }[]
+}
+
+export interface Inspection {
+  id: string
+  visitType: 'AUDITORIA' | 'INTERVENTORIA' | 'INSPECCION'
+  visitDate: string
+  actReference?: string
+  auditorEntity: string
+  auditorName: string
+  auditedProcess?: string
+  objective?: string
+  responsible?: string
+  commitmentDate?: string
+  correctiveActions?: string
+  lotId?: string
+  lot?: Pick<Lot, 'id' | 'code' | 'name'>
+  findings: Array<{
+    id: string
+    type: 'NO_CONFORMIDAD' | 'OBSERVACION' | 'OPORTUNIDAD'
+    priority: 'ALTA' | 'MEDIA' | 'BAJA'
+    criteria?: string
+    description: string
+    deadline?: string
+  }>
+  createdById: string
+  createdAt: string
+  updatedAt: string
 }
 
 export interface Paginated<T> {

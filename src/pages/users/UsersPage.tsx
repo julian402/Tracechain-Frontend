@@ -2,20 +2,13 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getUsers, createUser, updateUser, deleteUser } from '../../api/users'
 import { notify } from '../../lib/toast'
+import { getApiMessage } from '../../lib/apiError'
 import { TableRowSkeleton } from '../../components/ui/Skeleton'
+import { Badge } from '../../components/ui/Badge'
+import { Modal } from '../../components/ui/Modal'
+import { EmptyState } from '../../components/ui/EmptyState'
+import { ROLE_COLORS, ROLE_LABELS } from '../../lib/constants'
 import type { User } from '../../types'
-
-const roleColors: Record<string, string> = {
-  ADMIN: 'bg-purple-100 text-purple-700',
-  OPERATOR: 'bg-blue-100 text-blue-700',
-  AUDITOR: 'bg-yellow-100 text-yellow-700'
-}
-
-const roleLabels: Record<string, string> = {
-  ADMIN: 'Administrador',
-  OPERATOR: 'Operario',
-  AUDITOR: 'Auditor'
-}
 
 const initialForm = {
   name: '',
@@ -48,9 +41,8 @@ export default function UsersPage() {
       setFormError('')
       notify.success('Usuario creado correctamente')
     },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.message ?? 'Error al crear el usuario.'
-      setFormError(msg)
+    onError: (error: unknown) => {
+      setFormError(getApiMessage(error, 'Error al crear el usuario.'))
       notify.apiError(error)
     }
   })
@@ -64,9 +56,8 @@ export default function UsersPage() {
       setEditError('')
       notify.success('Usuario actualizado correctamente')
     },
-    onError: (error: any) => {
-      const msg = error?.response?.data?.message ?? 'Error al actualizar el usuario.'
-      setEditError(msg)
+    onError: (error: unknown) => {
+      setEditError(getApiMessage(error, 'Error al actualizar el usuario.'))
       notify.apiError(error)
     }
   })
@@ -158,7 +149,7 @@ export default function UsersPage() {
           </div>
           </>
         ) : (users as User[]).length === 0 ? (
-          <p className="p-6 text-sm text-gray-500">No hay usuarios registrados</p>
+          <EmptyState message="No hay usuarios registrados" />
         ) : (
           <>
           {/* Tabla — desktop */}
@@ -185,9 +176,9 @@ export default function UsersPage() {
                   </td>
                   <td className="px-4 py-3 text-gray-600">{user.email}</td>
                   <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${roleColors[user.role]}`}>
-                      {roleLabels[user.role]}
-                    </span>
+                    <Badge color={ROLE_COLORS[user.role]}>
+                      {ROLE_LABELS[user.role]}
+                    </Badge>
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {new Date(user.createdAt).toLocaleDateString('es-CO')}
@@ -235,12 +226,7 @@ export default function UsersPage() {
 
       {/* Modal crear usuario */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">Nuevo usuario</h2>
-              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
-            </div>
+        <Modal title="Nuevo usuario" onClose={() => setShowForm(false)}>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {formError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{formError}</div>
@@ -304,18 +290,12 @@ export default function UsersPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Modal editar usuario */}
       {editUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
-          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="font-semibold text-gray-900">Editar usuario</h2>
-              <button onClick={() => setEditUser(null)} className="text-gray-400 hover:text-gray-600">✕</button>
-            </div>
+        <Modal title="Editar usuario" onClose={() => setEditUser(null)}>
             <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
               {editError && (
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">{editError}</div>
@@ -366,15 +346,13 @@ export default function UsersPage() {
                 </button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {/* Modal confirmar eliminación */}
       {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6 space-y-4">
-            <h2 className="font-semibold text-gray-900">¿Eliminar usuario?</h2>
+        <Modal title="¿Eliminar usuario?" onClose={() => setDeleteConfirm(null)} size="sm" sheet={false}>
+          <div className="p-6 space-y-4">
             <p className="text-sm text-gray-500">Esta acción no se puede deshacer.</p>
             <div className="flex gap-3">
               <button
@@ -392,7 +370,7 @@ export default function UsersPage() {
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   )

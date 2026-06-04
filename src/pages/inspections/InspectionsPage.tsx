@@ -4,6 +4,11 @@ import { createInspection, getInspections, type Finding, type CreateVisitPayload
 import { getLots } from '../../api/lots'
 import { notify } from '../../lib/toast'
 import { TableRowSkeleton } from '../../components/ui/Skeleton'
+import { Badge } from '../../components/ui/Badge'
+import { EmptyState } from '../../components/ui/EmptyState'
+import {
+  VISIT_TYPE_LABELS, FINDING_TYPE_LABELS, PRIORITY_LABELS, PRIORITY_COLORS
+} from '../../lib/constants'
 
 const steps = ['Datos generales', 'Hallazgos', 'Compromisos', 'Envío']
 
@@ -30,29 +35,6 @@ const initialForm: CreateVisitPayload = {
   findings: [{ ...emptyFinding }]
 }
 
-const visitTypeLabels: Record<string, string> = {
-  AUDITORIA: 'Auditoría',
-  INTERVENTORIA: 'Interventoría',
-  INSPECCION: 'Inspección'
-}
-
-const findingTypeLabels: Record<string, string> = {
-  NO_CONFORMIDAD: 'No conformidad',
-  OBSERVACION: 'Observación',
-  OPORTUNIDAD: 'Oportunidad de mejora'
-}
-
-const priorityLabels: Record<string, string> = {
-  ALTA: 'Alta',
-  MEDIA: 'Media',
-  BAJA: 'Baja'
-}
-
-const priorityColors: Record<string, string> = {
-  ALTA: 'bg-red-100 text-red-700',
-  MEDIA: 'bg-yellow-100 text-yellow-700',
-  BAJA: 'bg-green-100 text-green-700'
-}
 
 export default function InspectionsPage() {
   const queryClient = useQueryClient()
@@ -66,10 +48,11 @@ export default function InspectionsPage() {
     queryFn: getInspections
   })
 
-  const { data: lots = [] } = useQuery({
+  const { data: lotsData } = useQuery({
     queryKey: ['lots'],
-    queryFn: getLots
+    queryFn: () => getLots({ limit: 200 }),
   })
+  const lots = lotsData?.data ?? []
 
   const mutation = useMutation({
     mutationFn: createInspection,
@@ -157,8 +140,8 @@ export default function InspectionsPage() {
               {Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
             </tbody>
           </table>
-        ) : (inspections as any[]).length === 0 ? (
-          <p className="p-6 text-sm text-gray-500">No hay inspecciones registradas</p>
+        ) : inspections.length === 0 ? (
+          <EmptyState message="No hay inspecciones registradas" />
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -172,12 +155,12 @@ export default function InspectionsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {(inspections as any[]).map((inspection) => (
+              {inspections.map((inspection) => (
                 <tr key={inspection.id} className="hover:bg-gray-50">
                   <td className="px-4 py-3">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                      {visitTypeLabels[inspection.visitType]}
-                    </span>
+                    <Badge color="bg-blue-100 text-blue-700">
+                      {VISIT_TYPE_LABELS[inspection.visitType]}
+                    </Badge>
                   </td>
                   <td className="px-4 py-3 text-gray-700">{inspection.auditorEntity}</td>
                   <td className="px-4 py-3 text-gray-600">{inspection.auditorName}</td>
@@ -264,7 +247,7 @@ export default function InspectionsPage() {
                           <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de visita *</label>
                           <select
                             value={form.visitType}
-                            onChange={(e) => setForm({ ...form, visitType: e.target.value as any })}
+                            onChange={(e) => setForm({ ...form, visitType: e.target.value as CreateVisitPayload['visitType'] })}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                           >
                             <option value="AUDITORIA">Auditoría</option>
@@ -324,7 +307,7 @@ export default function InspectionsPage() {
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                           >
                             <option value="">Sin lote específico</option>
-                            {(lots as any[]).map((lot) => (
+                            {lots.map((lot) => (
                               <option key={lot.id} value={lot.id}>{lot.name} — {lot.code}</option>
                             ))}
                           </select>
@@ -421,10 +404,10 @@ export default function InspectionsPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${priorityColors[finding.priority]}`}>
-                              {priorityLabels[finding.priority]}
-                            </span>
-                            <span className="text-xs text-gray-500">{findingTypeLabels[finding.type]}</span>
+                            <Badge color={PRIORITY_COLORS[finding.priority]}>
+                              {PRIORITY_LABELS[finding.priority]}
+                            </Badge>
+                            <span className="text-xs text-gray-500">{FINDING_TYPE_LABELS[finding.type]}</span>
                           </div>
                         </div>
                       ))}
@@ -471,7 +454,7 @@ export default function InspectionsPage() {
                       <div className="bg-gray-50 rounded-xl p-4 space-y-3 text-sm">
                         <div className="flex justify-between">
                           <span className="text-gray-500">Tipo de visita</span>
-                          <span className="font-medium">{visitTypeLabels[form.visitType]}</span>
+                          <span className="font-medium">{VISIT_TYPE_LABELS[form.visitType]}</span>
                         </div>
                         <div className="flex justify-between">
                           <span className="text-gray-500">Fecha</span>
