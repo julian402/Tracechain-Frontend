@@ -11,8 +11,13 @@ export const getUsersGlobal = async () => {
   return res.data.data
 }
 
-export const createUser = async (data: { name: string; email: string; password: string; roleId: string }) => {
+export const createUser = async (data: { name: string; email: string; password: string; roleId: string; organizationId?: string }) => {
   const res = await client.post<ApiResponse<User>>('/users', data)
+  return res.data.data
+}
+
+export const promoteSuperAdmin = async (id: string) => {
+  const res = await client.patch<ApiResponse<User>>(`/users/${id}/super-admin`)
   return res.data.data
 }
 

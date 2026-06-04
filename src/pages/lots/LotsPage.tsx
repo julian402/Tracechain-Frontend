@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { getLots, createLot } from '../../api/lots'
+import { downloadLotsCSV, downloadLotsPDF } from '../../api/reports'
+import { usePermissions } from '../../hooks/usePermissions'
 import { notify } from '../../lib/toast'
 import { TableRowSkeleton } from '../../components/ui/Skeleton'
 import { Pagination } from '../../components/ui/Pagination'
@@ -29,12 +31,21 @@ const initialForm = {
 export default function LotsPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+  const { can } = usePermissions()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
   const [page, setPage] = useState(1)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(initialForm)
   const [formError, setFormError] = useState('')
+  const [exporting, setExporting] = useState('')
+
+  const handleExport = async (fn: () => Promise<void>, label: string) => {
+    setExporting(label)
+    try { await fn(); notify.success(`${label} descargado`) }
+    catch (e) { notify.apiError(e) }
+    finally { setExporting('') }
+  }
 
   const { data, isLoading } = useQuery({
     queryKey: ['lots', search, status, page],
@@ -87,14 +98,36 @@ export default function LotsPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-gray-900">Lotes</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
-        >
-          + Nuevo lote
-        </button>
+        <div className="flex items-center gap-2">
+          {can('reports:read') && (
+            <>
+              <button
+                onClick={() => handleExport(downloadLotsCSV, 'CSV lotes')}
+                disabled={!!exporting}
+                title="Exportar CSV"
+                className="border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1"
+              >
+                <span>↓</span> {exporting === 'CSV lotes' ? '...' : 'CSV'}
+              </button>
+              <button
+                onClick={() => handleExport(downloadLotsPDF, 'PDF lotes')}
+                disabled={!!exporting}
+                title="Exportar PDF"
+                className="border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1"
+              >
+                <span>↓</span> {exporting === 'PDF lotes' ? '...' : 'PDF'}
+              </button>
+            </>
+          )}
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+          >
+            + Nuevo lote
+          </button>
+        </div>
       </div>
 
       {/* Filtros */}

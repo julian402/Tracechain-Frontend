@@ -31,7 +31,7 @@ export const deleteRole = async (id: string) => {
   return res.data
 }
 
-export const updateRolePermissions = async (id: string, permissionIds: string[]) => {
-  const res = await client.put<ApiResponse<DynamicRole>>(`/roles/${id}/permissions`, { permissionIds })
+export const updateRolePermissions = async (id: string, permissions: string[]) => {
+  const res = await client.put<ApiResponse<DynamicRole>>(`/roles/${id}/permissions`, { permissions })
   return res.data.data
 }

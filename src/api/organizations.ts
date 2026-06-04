@@ -28,6 +28,11 @@ export const getMyOrganization = async () => {
   return res.data.data
 }
 
+export const updateMyOrganization = async (data: { name?: string; slug?: string }) => {
+  const res = await client.patch<ApiResponse<OrgUsage['organization']>>('/organizations/me', data)
+  return res.data.data
+}
+
 export const getOrganizationById = async (id: string) => {
   const res = await client.get<ApiResponse<Organization>>(`/organizations/${id}`)
   return res.data.data

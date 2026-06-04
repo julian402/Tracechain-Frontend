@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { getMovements, createMovement } from '../../api/movements'
 import { getLots } from '../../api/lots'
+import { downloadMovementsCSV } from '../../api/reports'
+import { usePermissions } from '../../hooks/usePermissions'
 import { notify } from '../../lib/toast'
 import { TableRowSkeleton } from '../../components/ui/Skeleton'
 import { Pagination } from '../../components/ui/Pagination'
@@ -24,7 +26,16 @@ const initialForm = {
 
 export default function MovementsPage() {
   const queryClient = useQueryClient()
+  const { can } = usePermissions()
   const [page, setPage] = useState(1)
+  const [exporting, setExporting] = useState(false)
+
+  const handleExportCSV = async () => {
+    setExporting(true)
+    try { await downloadMovementsCSV(); notify.success('CSV movimientos descargado') }
+    catch (e) { notify.apiError(e) }
+    finally { setExporting(false) }
+  }
   const [filterType, setFilterType] = useState('')
   const [filterLot, setFilterLot] = useState('')
   const [filterFrom, setFilterFrom] = useState('')
@@ -92,12 +103,24 @@ export default function MovementsPage() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-gray-900">Movimientos</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="bg-green-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shrink-0"
-        >
-          + Registrar
-        </button>
+        <div className="flex items-center gap-2">
+          {can('reports:read') && (
+            <button
+              onClick={handleExportCSV}
+              disabled={exporting}
+              title="Exportar CSV"
+              className="border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1 shrink-0"
+            >
+              <span>↓</span> {exporting ? '...' : 'CSV'}
+            </button>
+          )}
+          <button
+            onClick={() => setShowForm(true)}
+            className="bg-green-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shrink-0"
+          >
+            + Registrar
+          </button>
+        </div>
       </div>
 
       {/* Filtros */}

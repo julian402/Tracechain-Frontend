@@ -22,6 +22,8 @@ const ReportsPage     = lazy(() => import('./pages/reports/ReportsPage'))
 const PlansPage             = lazy(() => import('./pages/admin/PlansPage'))
 const OrganizationsPage     = lazy(() => import('./pages/admin/OrganizationsPage'))
 const GlobalUsersPage       = lazy(() => import('./pages/admin/GlobalUsersPage'))
+const RolesPage             = lazy(() => import('./pages/roles/RolesPage'))
+const PlanPage              = lazy(() => import('./pages/billing/PlanPage'))
 const PublicLotPage   = lazy(() => import('./pages/public/PublicLotPage'))
 const NotFoundPage    = lazy(() => import('./pages/NotFoundPage'))
 
@@ -79,16 +81,16 @@ function App() {
                 <Route path="audit"       element={<AuditPage />} />
                 <Route path="inspections" element={<InspectionsPage />} />
                 <Route path="profile"     element={<ProfilePage />} />
-                <Route path="reports" element={
-                  <PermissionRoute permission="reports:read">
-                    <ReportsPage />
-                  </PermissionRoute>
-                } />
+                <Route path="reports" element={<ReportsPage />} />
                 <Route path="users" element={
                   <PermissionRoute permission="users:manage">
                     <UsersPage />
                   </PermissionRoute>
                 } />
+                <Route path="roles" element={
+                  <SuperAdminRoute><RolesPage /></SuperAdminRoute>
+                } />
+                <Route path="billing" element={<PlanPage />} />
                 {/* Plataforma — solo super admin */}
                 <Route path="admin/plans" element={
                   <SuperAdminRoute><PlansPage /></SuperAdminRoute>

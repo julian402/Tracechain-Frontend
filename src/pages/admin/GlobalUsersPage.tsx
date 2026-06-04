@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { getUsersGlobal, createUser, updateUser, deleteUser } from '../../api/users'
+import { getUsersGlobal, createUser, updateUser, deleteUser, promoteSuperAdmin } from '../../api/users'
 import { getOrganizations } from '../../api/organizations'
+import { useAuth } from '../../hooks/useAuth'
 import { getRolesByOrg } from '../../api/roles'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
@@ -20,6 +21,7 @@ const initialForm = { name: '', email: '', password: '', roleId: '', organizatio
 
 export default function GlobalUsersPage() {
   const queryClient = useQueryClient()
+  const { isSuperAdmin } = useAuth()
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(initialForm)
   const [formError, setFormError] = useState('')
@@ -27,6 +29,7 @@ export default function GlobalUsersPage() {
   const [editForm, setEditForm] = useState({ name: '', roleId: '' })
   const [editError, setEditError] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [promoteConfirm, setPromoteConfirm] = useState<GlobalUser | null>(null)
   const [orgRoles, setOrgRoles] = useState<DynamicRole[]>([])
   const [editOrgRoles, setEditOrgRoles] = useState<DynamicRole[]>([])
 
@@ -38,6 +41,7 @@ export default function GlobalUsersPage() {
   const { data: orgs = [] } = useQuery({
     queryKey: ['organizations'],
     queryFn: getOrganizations,
+    enabled: isSuperAdmin,
   })
 
   const invalidate = () => queryClient.invalidateQueries({ queryKey: ['users-global'] })
@@ -79,6 +83,12 @@ export default function GlobalUsersPage() {
     mutationFn: deleteUser,
     onSuccess: () => { invalidate(); setDeleteConfirm(null); notify.userDeleted() },
     onError: (e) => notify.apiError(e),
+  })
+
+  const promoteMutation = useMutation({
+    mutationFn: promoteSuperAdmin,
+    onSuccess: () => { invalidate(); setPromoteConfirm(null); notify.success('Usuario promovido a Super Admin') },
+    onError: (e: unknown) => notify.apiError(e),
   })
 
   const openEdit = (user: GlobalUser) => {
@@ -194,6 +204,7 @@ export default function GlobalUsersPage() {
                     {!user.isSuperAdmin && (
                       <div className="flex items-center gap-3">
                         <button onClick={() => openEdit(user)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Editar</button>
+                        <button onClick={() => setPromoteConfirm(user)} className="text-purple-600 hover:text-purple-800 text-xs font-medium">Super Admin</button>
                         <button onClick={() => setDeleteConfirm(user.id)} className="text-red-500 hover:text-red-700 text-xs font-medium">Eliminar</button>
                       </div>
                     )}
@@ -288,6 +299,30 @@ export default function GlobalUsersPage() {
               </button>
             </div>
           </form>
+        </Modal>
+      )}
+
+      {/* Confirmar promover a super admin */}
+      {promoteConfirm && (
+        <Modal title="Promover a Super Admin" onClose={() => setPromoteConfirm(null)} size="sm" sheet={false}>
+          <div className="p-6 space-y-4">
+            <p className="text-sm text-gray-600">
+              <strong>{promoteConfirm.name}</strong> ganará acceso completo a la plataforma y perderá su rol y organización actuales.
+            </p>
+            <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+              Esta acción es irreversible desde la UI. El usuario pasará a ser Super Admin.
+            </p>
+            <div className="flex gap-3">
+              <button onClick={() => setPromoteConfirm(null)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm">Cancelar</button>
+              <button
+                onClick={() => promoteMutation.mutate(promoteConfirm.id)}
+                disabled={promoteMutation.isPending}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-60"
+              >
+                {promoteMutation.isPending ? 'Promoviendo...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
         </Modal>
       )}
 

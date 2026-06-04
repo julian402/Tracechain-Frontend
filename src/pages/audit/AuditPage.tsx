@@ -1,6 +1,9 @@
 import { useState } from 'react'
 import { useQuery, keepPreviousData } from '@tanstack/react-query'
 import { getAuditLogs } from '../../api/audit'
+import { downloadAuditCSV } from '../../api/reports'
+import { usePermissions } from '../../hooks/usePermissions'
+import { notify } from '../../lib/toast'
 import { TableRowSkeleton } from '../../components/ui/Skeleton'
 import { Pagination } from '../../components/ui/Pagination'
 import { Badge } from '../../components/ui/Badge'
@@ -11,7 +14,16 @@ import type { AuditLog } from '../../types'
 const PAGE_SIZE = 15
 
 export default function AuditPage() {
+  const { can } = usePermissions()
+  const [exporting, setExporting] = useState(false)
   const [formAction, setFormAction] = useState('')
+
+  const handleExportCSV = async () => {
+    setExporting(true)
+    try { await downloadAuditCSV(); notify.success('CSV auditoría descargado') }
+    catch (e) { notify.apiError(e) }
+    finally { setExporting(false) }
+  }
   const [formFrom, setFormFrom] = useState('')
   const [formTo, setFormTo] = useState('')
   const [applied, setApplied] = useState({ action: '', fromDate: '', toDate: '' })
@@ -47,7 +59,18 @@ export default function AuditPage() {
 
   return (
     <div className="p-6 space-y-6">
-      <h1 className="text-xl font-bold text-gray-900">Bitácora de auditoría</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-bold text-gray-900">Bitácora de auditoría</h1>
+        {can('reports:read') && (
+          <button
+            onClick={handleExportCSV}
+            disabled={exporting}
+            className="border border-gray-300 text-gray-600 px-3 py-2 rounded-lg text-xs font-medium hover:bg-gray-50 disabled:opacity-50 flex items-center gap-1"
+          >
+            <span>↓</span> {exporting ? '...' : 'Exportar CSV'}
+          </button>
+        )}
+      </div>
 
       {/* Filtros */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">

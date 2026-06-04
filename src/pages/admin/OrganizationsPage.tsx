@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { getOrganizations, createOrganization, changeOrgPlan, activateOrganization, suspendOrganization, type CreateOrgPayload } from '../../api/organizations'
 import { getPlans } from '../../api/plans'
+import { useAuth } from '../../hooks/useAuth'
 import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { EmptyState } from '../../components/ui/EmptyState'
@@ -23,6 +24,7 @@ const emptyForm: CreateOrgPayload & { slug: string } = { name: '', slug: '', pla
 
 export default function OrganizationsPage() {
   const queryClient = useQueryClient()
+  const { isSuperAdmin } = useAuth()
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState(emptyForm)
   const [formError, setFormError] = useState('')
@@ -32,6 +34,7 @@ export default function OrganizationsPage() {
   const { data: orgs = [], isLoading } = useQuery({
     queryKey: ['organizations'],
     queryFn: getOrganizations,
+    enabled: isSuperAdmin,
   })
 
   const { data: plans = [] } = useQuery({

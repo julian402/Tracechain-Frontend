@@ -26,7 +26,8 @@ export interface DynamicRole {
   description?: string | null
   isSystem: boolean
   organizationId?: string | null
-  permissions?: Permission[]
+  permissions?: string[]
+  usersCount?: number
   createdAt?: string
 }
 
