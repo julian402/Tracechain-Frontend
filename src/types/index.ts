@@ -73,6 +73,14 @@ export interface DashboardStats {
   }
   recentLots: Lot[]
   activeAlerts: Lot[]
+  lotsByMonth: { mes: string; lotes: number }[]
+}
+
+export interface Paginated<T> {
+  data: T[]
+  total: number
+  page: number
+  totalPages: number
 }
 
 export interface ApiResponse<T> {

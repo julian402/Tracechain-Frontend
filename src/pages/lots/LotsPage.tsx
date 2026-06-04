@@ -1,8 +1,13 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
-import { getLots, searchLots, createLot } from '../../api/lots'
+import { getLots, createLot } from '../../api/lots'
+import { notify } from '../../lib/toast'
+import { TableRowSkeleton } from '../../components/ui/Skeleton'
+import { Pagination } from '../../components/ui/Pagination'
 import type { Lot } from '../../types'
+
+const PAGE_SIZE = 10
 
 const statusColors: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
@@ -36,17 +41,25 @@ export default function LotsPage() {
   const queryClient = useQueryClient()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('')
+  const [page, setPage] = useState(1)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(initialForm)
   const [formError, setFormError] = useState('')
 
-  const { data: lots = [], isLoading } = useQuery({
-    queryKey: ['lots', search, status],
-    queryFn: () =>
-      search || status
-        ? searchLots({ search: search || undefined, status: status || undefined })
-        : getLots()
+  const { data, isLoading } = useQuery({
+    queryKey: ['lots', search, status, page],
+    queryFn: () => getLots({ page, limit: PAGE_SIZE, search: search || undefined, status: status || undefined }),
+    placeholderData: keepPreviousData,
   })
+
+  const lots = data?.data ?? []
+  const totalLots = data?.total ?? 0
+
+  const handleFilterChange = (newSearch: string, newStatus: string) => {
+    setSearch(newSearch)
+    setStatus(newStatus)
+    setPage(1)
+  }
 
   const createMutation = useMutation({
     mutationFn: createLot,
@@ -56,9 +69,11 @@ export default function LotsPage() {
       setShowForm(false)
       setForm(initialForm)
       setFormError('')
+      notify.lotCreated()
     },
-    onError: () => {
+    onError: (error) => {
       setFormError('Error al crear el lote. Verifica los datos.')
+      notify.apiError(error)
     }
   })
 
@@ -98,12 +113,12 @@ export default function LotsPage() {
           type="text"
           placeholder="Buscar por nombre o código..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleFilterChange(e.target.value, status)}
           className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
         />
         <select
           value={status}
-          onChange={(e) => setStatus(e.target.value)}
+          onChange={(e) => handleFilterChange(search, e.target.value)}
           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
         >
           <option value="">Todos los estados</option>
@@ -117,10 +132,22 @@ export default function LotsPage() {
       {/* Tabla */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Cargando lotes...</p>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                {['Código', 'Nombre', 'Cantidad', 'Estado', 'Vencimiento', ''].map((h) => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
+            </tbody>
+          </table>
         ) : lots.length === 0 ? (
           <p className="p-6 text-sm text-gray-500">No hay lotes registrados</p>
         ) : (
+          <>
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -158,6 +185,8 @@ export default function LotsPage() {
               ))}
             </tbody>
           </table>
+          <Pagination page={page} totalItems={totalLots} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          </>
         )}
       </div>
 

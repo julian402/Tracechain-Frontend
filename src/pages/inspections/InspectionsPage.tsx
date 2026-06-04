@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createInspection, getInspections, type Finding, type CreateVisitPayload } from '../../api/inspections'
 import { getLots } from '../../api/lots'
+import { notify } from '../../lib/toast'
+import { TableRowSkeleton } from '../../components/ui/Skeleton'
 
 const steps = ['Datos generales', 'Hallazgos', 'Compromisos', 'Envío']
 
@@ -75,7 +77,9 @@ export default function InspectionsPage() {
       queryClient.invalidateQueries({ queryKey: ['inspections'] })
       queryClient.invalidateQueries({ queryKey: ['audit'] })
       setSuccess(true)
-    }
+      notify.inspectionCreated()
+    },
+    onError: (error) => notify.apiError(error),
   })
 
   const handleNext = () => setCurrentStep((s) => Math.min(s + 1, 3))
@@ -141,7 +145,18 @@ export default function InspectionsPage() {
       {/* Lista de inspecciones */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Cargando inspecciones...</p>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                {['Tipo', 'Entidad auditora', 'Auditor', 'Lote', 'Hallazgos', 'Fecha'].map((h) => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
+            </tbody>
+          </table>
         ) : (inspections as any[]).length === 0 ? (
           <p className="p-6 text-sm text-gray-500">No hay inspecciones registradas</p>
         ) : (

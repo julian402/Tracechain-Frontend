@@ -1,12 +1,7 @@
 import client from './client'
-import type { ApiResponse, AuditLog } from '../types'
+import type { ApiResponse, AuditLog, Paginated } from '../types'
 
-export const getAuditLogs = async () => {
-  const res = await client.get<ApiResponse<AuditLog[]>>('/audit')
-  return res.data.data
-}
-
-export const searchAuditLogs = async (params: { action?: string; userId?: string; lotId?: string; fromDate?: string; toDate?: string }) => {
-  const res = await client.get<ApiResponse<AuditLog[]>>('/audit/search', { params })
+export const getAuditLogs = async (params: { page?: number; limit?: number; action?: string; userId?: string; lotId?: string; fromDate?: string; toDate?: string } = {}) => {
+  const res = await client.get<ApiResponse<Paginated<AuditLog>>>('/audit', { params })
   return res.data.data
 }

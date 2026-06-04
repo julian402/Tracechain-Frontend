@@ -1,42 +1,56 @@
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { getAuditLogs, searchAuditLogs } from '../../api/audit'
+import { useQuery, keepPreviousData } from '@tanstack/react-query'
+import { getAuditLogs } from '../../api/audit'
+import { TableRowSkeleton } from '../../components/ui/Skeleton'
+import { Pagination } from '../../components/ui/Pagination'
 import type { AuditLog } from '../../types'
+
+const PAGE_SIZE = 15
 
 const actionColors: Record<string, string> = {
   CREATE: 'bg-green-100 text-green-700',
-  VISITA_EXTERNA: 'bg-blue-100 text-blue-700',
+  UPDATE: 'bg-blue-100 text-blue-700',
+  DELETE: 'bg-red-100 text-red-700',
+  VISITA_EXTERNA: 'bg-indigo-100 text-indigo-700',
   HALLAZGO_NO_CONFORMIDAD: 'bg-red-100 text-red-700',
   HALLAZGO_OBSERVACION: 'bg-yellow-100 text-yellow-700',
   HALLAZGO_OPORTUNIDAD: 'bg-purple-100 text-purple-700',
 }
 
 export default function AuditPage() {
-  const [action, setAction] = useState('')
-  const [fromDate, setFromDate] = useState('')
-  const [toDate, setToDate] = useState('')
-  const [isFiltering, setIsFiltering] = useState(false)
+  const [formAction, setFormAction] = useState('')
+  const [formFrom, setFormFrom] = useState('')
+  const [formTo, setFormTo] = useState('')
+  const [applied, setApplied] = useState({ action: '', fromDate: '', toDate: '' })
+  const [page, setPage] = useState(1)
 
-  const { data: logs = [], isLoading } = useQuery({
-    queryKey: ['audit', action, fromDate, toDate, isFiltering],
-    queryFn: () =>
-      isFiltering
-        ? searchAuditLogs({
-            action: action || undefined,
-            fromDate: fromDate || undefined,
-            toDate: toDate || undefined
-          })
-        : getAuditLogs()
+  const { data, isLoading } = useQuery({
+    queryKey: ['audit', applied.action, applied.fromDate, applied.toDate, page],
+    queryFn: () => getAuditLogs({
+      page,
+      limit: PAGE_SIZE,
+      action: applied.action || undefined,
+      fromDate: applied.fromDate || undefined,
+      toDate: applied.toDate || undefined,
+    }),
+    placeholderData: keepPreviousData,
   })
 
-  const handleFilter = () => setIsFiltering(true)
+  const logs = data?.data ?? []
+  const totalLogs = data?.total ?? 0
+
+  const handleFilter = () => {
+    setApplied({ action: formAction, fromDate: formFrom, toDate: formTo })
+    setPage(1)
+  }
 
   const handleClear = () => {
-    setAction('')
-    setFromDate('')
-    setToDate('')
-    setIsFiltering(false)
+    setFormAction(''); setFormFrom(''); setFormTo('')
+    setApplied({ action: '', fromDate: '', toDate: '' })
+    setPage(1)
   }
+
+  const hasFilters = applied.action || applied.fromDate || applied.toDate
 
   return (
     <div className="p-6 space-y-6">
@@ -48,12 +62,14 @@ export default function AuditPage() {
           <div>
             <label className="block text-xs font-medium text-gray-500 mb-1">Acción</label>
             <select
-              value={action}
-              onChange={(e) => setAction(e.target.value)}
+              value={formAction}
+              onChange={(e) => setFormAction(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             >
               <option value="">Todas</option>
               <option value="CREATE">Creación</option>
+              <option value="UPDATE">Actualización</option>
+              <option value="DELETE">Eliminación</option>
               <option value="VISITA_EXTERNA">Visita externa</option>
               <option value="HALLAZGO_NO_CONFORMIDAD">No conformidad</option>
               <option value="HALLAZGO_OBSERVACION">Observación</option>
@@ -64,8 +80,8 @@ export default function AuditPage() {
             <label className="block text-xs font-medium text-gray-500 mb-1">Desde</label>
             <input
               type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
+              value={formFrom}
+              onChange={(e) => setFormFrom(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
@@ -73,8 +89,8 @@ export default function AuditPage() {
             <label className="block text-xs font-medium text-gray-500 mb-1">Hasta</label>
             <input
               type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
+              value={formTo}
+              onChange={(e) => setFormTo(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
           </div>
@@ -84,7 +100,7 @@ export default function AuditPage() {
           >
             Filtrar
           </button>
-          {isFiltering && (
+          {hasFilters && (
             <button
               onClick={handleClear}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50"
@@ -98,10 +114,22 @@ export default function AuditPage() {
       {/* Tabla */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Cargando bitácora...</p>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                {['Acción', 'Entidad', 'Lote', 'Usuario', 'Fecha'].map((h) => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={5} />)}
+            </tbody>
+          </table>
         ) : logs.length === 0 ? (
           <p className="p-6 text-sm text-gray-500">No hay registros en la bitácora</p>
         ) : (
+          <>
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -132,6 +160,8 @@ export default function AuditPage() {
               ))}
             </tbody>
           </table>
+          <Pagination page={page} totalItems={totalLogs} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          </>
         )}
       </div>
     </div>

@@ -55,6 +55,15 @@ export default function Layout() {
                 </svg>
             )
         }] : []),
+        ...(user?.role === 'ADMIN' || user?.role === 'AUDITOR' ? [{
+            label: 'Reportes',
+            path: '/reports',
+            icon: (
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+            )
+        }] : []),
         ...(user?.role === 'ADMIN' ? [{
             label: 'Usuarios',
             path: '/users',
@@ -109,8 +118,13 @@ export default function Layout() {
 
                 {/* User */}
                 <div className="p-4 border-t border-gray-200">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                    <NavLink
+                        to="/profile"
+                        className={({ isActive }) =>
+                            `flex items-center gap-3 mb-2 px-2 py-1.5 rounded-lg transition-colors ${isActive ? 'bg-green-50' : 'hover:bg-gray-50'}`
+                        }
+                    >
+                        <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shrink-0">
                             <span className="text-xs font-medium text-gray-600">
                                 {user?.name?.charAt(0).toUpperCase()}
                             </span>
@@ -119,7 +133,7 @@ export default function Layout() {
                             <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
                             <p className="text-xs text-gray-500 truncate">{user?.role}</p>
                         </div>
-                    </div>
+                    </NavLink>
                     <button
                         onClick={handleLogout}
                         className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"

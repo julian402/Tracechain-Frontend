@@ -1,8 +1,8 @@
 import client from './client'
-import type { ApiResponse, Lot } from '../types'
+import type { ApiResponse, Lot, Paginated } from '../types'
 
-export const getLots = async () => {
-  const res = await client.get<ApiResponse<Lot[]>>('/lots')
+export const getLots = async (params: { page?: number; limit?: number; search?: string; status?: string } = {}) => {
+  const res = await client.get<ApiResponse<Paginated<Lot>>>('/lots', { params })
   return res.data.data
 }
 
@@ -28,6 +28,11 @@ export const createLot = async (data: Partial<Lot>) => {
 
 export const changeLotStatus = async (id: string, status: string) => {
   const res = await client.patch<ApiResponse<Lot>>(`/lots/${id}/status`, { status })
+  return res.data.data
+}
+
+export const updateLot = async (id: string, data: Partial<Lot>) => {
+  const res = await client.patch<ApiResponse<Lot>>(`/lots/${id}`, data)
   return res.data.data
 }
 

@@ -1,8 +1,13 @@
 import { useState } from 'react'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { getMovements, createMovement } from '../../api/movements'
 import { getLots } from '../../api/lots'
+import { notify } from '../../lib/toast'
+import { TableRowSkeleton } from '../../components/ui/Skeleton'
+import { Pagination } from '../../components/ui/Pagination'
 import type { Movement } from '../../types'
+
+const PAGE_SIZE = 10
 
 const movementLabels: Record<string, string> = {
   CREATED: 'Creado',
@@ -33,19 +38,38 @@ const initialForm = {
 
 export default function MovementsPage() {
   const queryClient = useQueryClient()
+  const [page, setPage] = useState(1)
+  const [filterType, setFilterType] = useState('')
+  const [filterLot, setFilterLot] = useState('')
+  const [filterFrom, setFilterFrom] = useState('')
+  const [filterTo, setFilterTo] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(initialForm)
   const [formError, setFormError] = useState('')
 
-  const { data: movements = [], isLoading } = useQuery({
-    queryKey: ['movements'],
-    queryFn: getMovements
+  const { data: movementsData, isLoading } = useQuery({
+    queryKey: ['movements', page, filterType, filterLot, filterFrom, filterTo],
+    queryFn: () => getMovements({
+      page,
+      limit: PAGE_SIZE,
+      type: filterType || undefined,
+      lotCode: filterLot || undefined,
+      fromDate: filterFrom || undefined,
+      toDate: filterTo || undefined,
+    }),
+    placeholderData: keepPreviousData,
   })
 
-  const { data: lots = [] } = useQuery({
+  const movements = movementsData?.data ?? []
+  const totalMovements = movementsData?.total ?? 0
+
+  const handleFilterChange = () => setPage(1)
+
+  const { data: lotsData } = useQuery({
     queryKey: ['lots'],
-    queryFn: getLots
+    queryFn: () => getLots({ limit: 200 }),
   })
+  const lots = lotsData?.data ?? []
 
   const createMutation = useMutation({
     mutationFn: createMovement,
@@ -56,9 +80,11 @@ export default function MovementsPage() {
       setShowForm(false)
       setForm(initialForm)
       setFormError('')
+      notify.movementCreated()
     },
-    onError: () => {
+    onError: (error) => {
       setFormError('Error al registrar el movimiento.')
+      notify.apiError(error)
     }
   })
 
@@ -88,13 +114,71 @@ export default function MovementsPage() {
         </button>
       </div>
 
+      {/* Filtros */}
+      <div className="bg-white rounded-xl border border-gray-200 p-4">
+        <div className="flex flex-wrap gap-3">
+          <select
+            value={filterType}
+            onChange={(e) => { setFilterType(e.target.value); handleFilterChange() }}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          >
+            <option value="">Todos los tipos</option>
+            {Object.entries(movementLabels).map(([v, l]) => (
+              <option key={v} value={v}>{l}</option>
+            ))}
+          </select>
+          <input
+            type="text"
+            placeholder="Código de lote..."
+            value={filterLot}
+            onChange={(e) => { setFilterLot(e.target.value); handleFilterChange() }}
+            className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+          />
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={filterFrom}
+              onChange={(e) => { setFilterFrom(e.target.value); handleFilterChange() }}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+            <span className="text-gray-400 text-sm">—</span>
+            <input
+              type="date"
+              value={filterTo}
+              onChange={(e) => { setFilterTo(e.target.value); handleFilterChange() }}
+              className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+            />
+          </div>
+          {(filterType || filterLot || filterFrom || filterTo) && (
+            <button
+              onClick={() => { setFilterType(''); setFilterLot(''); setFilterFrom(''); setFilterTo(''); setPage(1) }}
+              className="px-3 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Limpiar
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* Lista */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading ? (
-          <p className="p-6 text-sm text-gray-500">Cargando movimientos...</p>
+          <table className="w-full text-sm">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                {['Tipo', 'Lote', 'Descripción', 'Cantidad', 'Ruta', 'Fecha'].map((h) => (
+                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
+            </tbody>
+          </table>
         ) : movements.length === 0 ? (
           <p className="p-6 text-sm text-gray-500">No hay movimientos registrados</p>
         ) : (
+          <>
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
@@ -133,6 +217,8 @@ export default function MovementsPage() {
               ))}
             </tbody>
           </table>
+          <Pagination page={page} totalItems={totalMovements} pageSize={PAGE_SIZE} onPageChange={setPage} />
+          </>
         )}
       </div>
 
