@@ -101,23 +101,23 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Usuarios</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Gestión de usuarios y roles del sistema</p>
+          <p className="text-sm text-gray-500 mt-0.5 hidden sm:block">Gestión de usuarios y roles del sistema</p>
         </div>
         <button
           onClick={() => setShowForm(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+          className="bg-green-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shrink-0"
         >
-          + Nuevo usuario
+          + Nuevo
         </button>
       </div>
 
       {/* Stats rápidos */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-3 gap-3 md:gap-4">
         {(['ADMIN', 'OPERATOR', 'AUDITOR'] as const).map((role) => (
           <div key={role} className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1">{roleLabels[role]}s</p>
@@ -131,7 +131,8 @@ export default function UsersPage() {
       {/* Tabla */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading ? (
-          <table className="w-full text-sm">
+          <>
+          <table className="hidden md:table w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {['Usuario', 'Email', 'Rol', 'Registro', ''].map((h) => (
@@ -143,10 +144,25 @@ export default function UsersPage() {
               {Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={5} />)}
             </tbody>
           </table>
+          <div className="md:hidden divide-y divide-gray-100">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="p-4 flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-gray-200 animate-pulse shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+                  <div className="h-3 w-48 bg-gray-200 rounded animate-pulse" />
+                </div>
+                <div className="h-5 w-16 bg-gray-200 rounded-full animate-pulse" />
+              </div>
+            ))}
+          </div>
+          </>
         ) : (users as User[]).length === 0 ? (
           <p className="p-6 text-sm text-gray-500">No hay usuarios registrados</p>
         ) : (
-          <table className="w-full text-sm">
+          <>
+          {/* Tabla — desktop */}
+          <table className="hidden md:table w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Usuario</th>
@@ -162,9 +178,7 @@ export default function UsersPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
                       <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center shrink-0">
-                        <span className="text-xs font-medium text-gray-600">
-                          {user.name.charAt(0).toUpperCase()}
-                        </span>
+                        <span className="text-xs font-medium text-gray-600">{user.name.charAt(0).toUpperCase()}</span>
                       </div>
                       <span className="font-medium text-gray-900">{user.name}</span>
                     </div>
@@ -180,31 +194,49 @@ export default function UsersPage() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <button
-                        onClick={() => openEdit(user)}
-                        className="text-blue-600 hover:text-blue-800 text-xs font-medium"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => setDeleteConfirm(user.id)}
-                        className="text-red-500 hover:text-red-700 text-xs font-medium"
-                      >
-                        Eliminar
-                      </button>
+                      <button onClick={() => openEdit(user)} className="text-blue-600 hover:text-blue-800 text-xs font-medium">Editar</button>
+                      <button onClick={() => setDeleteConfirm(user.id)} className="text-red-500 hover:text-red-700 text-xs font-medium">Eliminar</button>
                     </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+
+          {/* Cards — móvil */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {(users as User[]).map((user) => (
+              <div key={user.id} className="p-4 space-y-2">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center shrink-0">
+                    <span className="text-sm font-medium text-gray-600">{user.name.charAt(0).toUpperCase()}</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900 truncate">{user.name}</p>
+                    <p className="text-xs text-gray-500 truncate">{user.email}</p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${roleColors[user.role]}`}>
+                    {roleLabels[user.role]}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-gray-400">{new Date(user.createdAt).toLocaleDateString('es-CO')}</span>
+                  <div className="flex gap-3">
+                    <button onClick={() => openEdit(user)} className="text-blue-600 text-xs font-medium">Editar</button>
+                    <button onClick={() => setDeleteConfirm(user.id)} className="text-red-500 text-xs font-medium">Eliminar</button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
 
       {/* Modal crear usuario */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Nuevo usuario</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
@@ -278,8 +310,8 @@ export default function UsersPage() {
 
       {/* Modal editar usuario */}
       {editUser && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Editar usuario</h2>
               <button onClick={() => setEditUser(null)} className="text-gray-400 hover:text-gray-600">✕</button>

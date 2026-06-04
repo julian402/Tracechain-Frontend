@@ -130,7 +130,8 @@ export default function AuditPage() {
           <p className="p-6 text-sm text-gray-500">No hay registros en la bitácora</p>
         ) : (
           <>
-          <table className="w-full text-sm">
+          {/* Tabla — desktop */}
+          <table className="hidden md:table w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Acción</th>
@@ -149,9 +150,7 @@ export default function AuditPage() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-gray-600">{log.entity}</td>
-                  <td className="px-4 py-3 text-xs font-mono text-gray-500">
-                    {log.lot?.code ?? '—'}
-                  </td>
+                  <td className="px-4 py-3 text-xs font-mono text-gray-500">{log.lot?.code ?? '—'}</td>
                   <td className="px-4 py-3 text-gray-600">{log.user?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {new Date(log.createdAt).toLocaleString('es-CO')}
@@ -160,6 +159,26 @@ export default function AuditPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Cards — móvil */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {logs.map((log: AuditLog) => (
+              <div key={log.id} className="p-4 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${actionColors[log.action] ?? 'bg-gray-100 text-gray-700'}`}>
+                    {log.action}
+                  </span>
+                  <span className="text-xs text-gray-400">{new Date(log.createdAt).toLocaleString('es-CO')}</span>
+                </div>
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span>{log.entity}</span>
+                  {log.lot?.code && <span className="font-mono">{log.lot.code}</span>}
+                  {log.user?.name && <span>{log.user.name}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+
           <Pagination page={page} totalItems={totalLogs} pageSize={PAGE_SIZE} onPageChange={setPage} />
           </>
         )}

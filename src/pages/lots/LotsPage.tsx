@@ -148,7 +148,8 @@ export default function LotsPage() {
           <p className="p-6 text-sm text-gray-500">No hay lotes registrados</p>
         ) : (
           <>
-          <table className="w-full text-sm">
+          {/* Tabla — desktop */}
+          <table className="hidden md:table w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Código</th>
@@ -185,6 +186,34 @@ export default function LotsPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Cards — móvil */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {lots.map((lot: Lot) => (
+              <div key={lot.id} className="p-4 space-y-2">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-gray-900">{lot.name}</p>
+                    <p className="text-xs font-mono text-gray-500 mt-0.5">{lot.code}</p>
+                  </div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${statusColors[lot.status]}`}>
+                    {statusLabels[lot.status]}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-sm text-gray-600">
+                  <span>{lot.quantity} {lot.unit}</span>
+                  <span className="text-xs text-gray-400">Vence: {new Date(lot.expirationDate).toLocaleDateString('es-CO')}</span>
+                </div>
+                <button
+                  onClick={() => navigate(`/lots/${lot.id}`)}
+                  className="text-green-600 hover:text-green-700 text-xs font-medium"
+                >
+                  Ver detalle →
+                </button>
+              </div>
+            ))}
+          </div>
+
           <Pagination page={page} totalItems={totalLots} pageSize={PAGE_SIZE} onPageChange={setPage} />
           </>
         )}
@@ -192,8 +221,8 @@ export default function LotsPage() {
 
       {/* Modal crear lote */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg max-h-[92vh] sm:max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Nuevo lote</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
@@ -212,7 +241,7 @@ export default function LotsPage() {
                   placeholder="Ej: Lote Mango Premium"
                 />
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Cantidad *</label>
                   <input

@@ -102,21 +102,21 @@ export default function MovementsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-xl font-bold text-gray-900">Movimientos</h1>
         <button
           onClick={() => setShowForm(true)}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
+          className="bg-green-600 text-white px-3 md:px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shrink-0"
         >
-          + Registrar movimiento
+          + Registrar
         </button>
       </div>
 
       {/* Filtros */}
       <div className="bg-white rounded-xl border border-gray-200 p-4">
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3">
           <select
             value={filterType}
             onChange={(e) => { setFilterType(e.target.value); handleFilterChange() }}
@@ -134,14 +134,13 @@ export default function MovementsPage() {
             onChange={(e) => { setFilterLot(e.target.value); handleFilterChange() }}
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           />
-          <div className="flex items-center gap-2">
+          <div className="grid grid-cols-2 sm:flex sm:items-center gap-2">
             <input
               type="date"
               value={filterFrom}
               onChange={(e) => { setFilterFrom(e.target.value); handleFilterChange() }}
               className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
             />
-            <span className="text-gray-400 text-sm">—</span>
             <input
               type="date"
               value={filterTo}
@@ -163,7 +162,8 @@ export default function MovementsPage() {
       {/* Lista */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading ? (
-          <table className="w-full text-sm">
+          <>
+          <table className="hidden md:table w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {['Tipo', 'Lote', 'Descripción', 'Cantidad', 'Ruta', 'Fecha'].map((h) => (
@@ -175,11 +175,25 @@ export default function MovementsPage() {
               {Array.from({ length: 5 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
             </tbody>
           </table>
+          <div className="md:hidden divide-y divide-gray-100">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="p-4 space-y-2">
+                <div className="flex justify-between">
+                  <div className="h-5 w-24 bg-gray-200 rounded-full animate-pulse" />
+                  <div className="h-4 w-20 bg-gray-200 rounded animate-pulse" />
+                </div>
+                <div className="h-4 w-3/4 bg-gray-200 rounded animate-pulse" />
+                <div className="h-3 w-1/2 bg-gray-200 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+          </>
         ) : movements.length === 0 ? (
           <p className="p-6 text-sm text-gray-500">No hay movimientos registrados</p>
         ) : (
           <>
-          <table className="w-full text-sm">
+          {/* Tabla — desktop */}
+          <table className="hidden md:table w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Tipo</th>
@@ -206,9 +220,7 @@ export default function MovementsPage() {
                     {movement.quantity != null ? `${movement.quantity}` : '—'}
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
-                    {movement.fromLocation
-                      ? `${movement.fromLocation} → ${movement.toLocation}`
-                      : '—'}
+                    {movement.fromLocation ? `${movement.fromLocation} → ${movement.toLocation}` : '—'}
                   </td>
                   <td className="px-4 py-3 text-gray-500 text-xs">
                     {new Date(movement.createdAt).toLocaleDateString('es-CO')}
@@ -217,6 +229,29 @@ export default function MovementsPage() {
               ))}
             </tbody>
           </table>
+
+          {/* Cards — móvil */}
+          <div className="md:hidden divide-y divide-gray-100">
+            {movements.map((movement: Movement) => (
+              <div key={movement.id} className="p-4 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${movementColors[movement.type]}`}>
+                    {movementLabels[movement.type]}
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    {new Date(movement.createdAt).toLocaleDateString('es-CO')}
+                  </span>
+                </div>
+                <p className="text-sm text-gray-700 line-clamp-2">{movement.description}</p>
+                <div className="flex items-center gap-3 text-xs text-gray-500">
+                  <span className="font-mono">{(movement as any).lot?.code ?? movement.lotId.slice(0, 8)}</span>
+                  {movement.quantity != null && <span>{movement.quantity}</span>}
+                  {movement.fromLocation && <span>{movement.fromLocation} → {movement.toLocation}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+
           <Pagination page={page} totalItems={totalMovements} pageSize={PAGE_SIZE} onPageChange={setPage} />
           </>
         )}
@@ -224,8 +259,8 @@ export default function MovementsPage() {
 
       {/* Modal */}
       {showForm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md">
+        <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md max-h-[92vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
               <h2 className="font-semibold text-gray-900">Registrar movimiento</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600">✕</button>
