@@ -1,86 +1,88 @@
 import { useState } from 'react'
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
+import { usePermissions } from '../../hooks/usePermissions'
+import { getRoleColor } from '../../lib/constants'
 
-const navItems = [
-  {
-    label: 'Dashboard',
-    path: '/dashboard',
-    icon: (
-      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-    )
-  },
-  {
-    label: 'Lotes',
-    path: '/lots',
-    icon: (
-      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-      </svg>
-    )
-  },
-  {
-    label: 'Movimientos',
-    path: '/movements',
-    icon: (
-      <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-      </svg>
-    )
-  },
-]
+interface NavItem {
+  label: string
+  path: string
+  icon: React.ReactNode
+}
+
+const DashboardIcon = () => (
+  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+  </svg>
+)
+const LotsIcon = () => (
+  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+  </svg>
+)
+const MovementsIcon = () => (
+  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+  </svg>
+)
+const AuditIcon = () => (
+  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+  </svg>
+)
+const InspectionsIcon = () => (
+  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+  </svg>
+)
+const ReportsIcon = () => (
+  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+)
+const UsersIcon = () => (
+  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+)
+const PlansIcon = () => (
+  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+  </svg>
+)
+const OrgsIcon = () => (
+  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+  </svg>
+)
+const GlobalUsersIcon = () => (
+  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+)
 
 export default function Layout() {
-  const { user, logout } = useAuth()
+  const { user, organization, isSuperAdmin, logout } = useAuth()
+  const { can } = usePermissions()
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(() => localStorage.getItem('sidebar-collapsed') === 'true')
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const allNavItems = [
-    ...navItems,
-    ...(user?.role === 'ADMIN' || user?.role === 'AUDITOR' ? [
-      {
-        label: 'Auditoría',
-        path: '/audit',
-        icon: (
-          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-          </svg>
-        )
-      },
-      {
-        label: 'Inspecciones',
-        path: '/inspections',
-        icon: (
-          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-          </svg>
-        )
-      },
-      {
-        label: 'Reportes',
-        path: '/reports',
-        icon: (
-          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        )
-      }
-    ] : []),
-    ...(user?.role === 'ADMIN' ? [
-      {
-        label: 'Usuarios',
-        path: '/users',
-        icon: (
-          <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-          </svg>
-        )
-      }
-    ] : [])
+  const orgNavItems: NavItem[] = [
+    { label: 'Dashboard',    path: '/dashboard',    icon: <DashboardIcon /> },
+    ...(can('lots:read')         ? [{ label: 'Lotes',        path: '/lots',        icon: <LotsIcon /> }]        : []),
+    ...(can('movements:read')    ? [{ label: 'Movimientos',  path: '/movements',   icon: <MovementsIcon /> }]   : []),
+    ...(can('audit:read')        ? [{ label: 'Auditoría',    path: '/audit',       icon: <AuditIcon /> }]       : []),
+    ...(can('inspections:read')  ? [{ label: 'Inspecciones', path: '/inspections', icon: <InspectionsIcon /> }] : []),
+    ...(can('reports:read')      ? [{ label: 'Reportes',     path: '/reports',     icon: <ReportsIcon /> }]     : []),
+    ...(can('users:manage')      ? [{ label: 'Usuarios',     path: '/users',       icon: <UsersIcon /> }]       : []),
   ]
+
+  const platformNavItems: NavItem[] = isSuperAdmin ? [
+    { label: 'Organizaciones', path: '/admin/organizations', icon: <OrgsIcon /> },
+    { label: 'Usuarios',       path: '/admin/users',         icon: <GlobalUsersIcon /> },
+    { label: 'Planes',         path: '/admin/plans',         icon: <PlansIcon /> },
+  ] : []
 
   const toggleCollapsed = () => {
     setCollapsed(prev => {
@@ -102,10 +104,33 @@ export default function Layout() {
     </div>
   )
 
+  const navLink = (item: NavItem) => (
+    <NavLink
+      key={item.path}
+      to={item.path}
+      title={collapsed ? item.label : undefined}
+      onClick={() => setMobileOpen(false)}
+      className={({ isActive }) => [
+        'flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
+        collapsed ? 'md:justify-center md:px-0 px-3' : 'px-3',
+        isActive ? 'bg-green-50 text-green-700' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
+      ].join(' ')}
+    >
+      {item.icon}
+      <span className={[
+        'whitespace-nowrap overflow-hidden transition-all duration-300',
+        collapsed ? 'md:max-w-0 md:opacity-0' : 'max-w-[160px] opacity-100',
+      ].join(' ')}>
+        {item.label}
+      </span>
+    </NavLink>
+  )
+
+  const roleName = user?.role?.name ?? (isSuperAdmin ? 'Super Admin' : '')
+
   return (
     <div className="flex h-screen bg-gray-50">
 
-      {/* Overlay móvil */}
       {mobileOpen && (
         <div
           className="fixed inset-0 bg-black/40 z-30 md:hidden"
@@ -113,7 +138,6 @@ export default function Layout() {
         />
       )}
 
-      {/* Sidebar unificado: drawer en móvil, colapsable en desktop */}
       <aside
         className={[
           'fixed md:relative inset-y-0 left-0 z-40 md:z-auto',
@@ -124,7 +148,7 @@ export default function Layout() {
           mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
         ].join(' ')}
       >
-        {/* Botón colapsar — solo desktop, flota en el borde derecho */}
+        {/* Botón colapsar — solo desktop */}
         <button
           onClick={toggleCollapsed}
           className="hidden md:flex absolute -right-3 top-6 z-10 w-6 h-6 rounded-full bg-white border border-gray-200 shadow-md items-center justify-center hover:bg-green-50 hover:border-green-400 transition-colors"
@@ -141,13 +165,15 @@ export default function Layout() {
         {/* Logo */}
         <div className="h-16 border-b border-gray-200 flex items-center px-4 gap-3 shrink-0">
           {logoIcon}
-          <span className={[
-            'font-bold text-gray-900 whitespace-nowrap overflow-hidden transition-all duration-300',
+          <div className={[
+            'overflow-hidden transition-all duration-300',
             collapsed ? 'md:max-w-0 md:opacity-0' : 'max-w-[160px] opacity-100',
           ].join(' ')}>
-            TraceChain
-          </span>
-          {/* Cerrar en móvil */}
+            <span className="font-bold text-gray-900 whitespace-nowrap block">TraceChain</span>
+            {organization && (
+              <span className="text-xs text-gray-400 whitespace-nowrap truncate block max-w-[140px]">{organization.name}</span>
+            )}
+          </div>
           <button
             className="md:hidden ml-auto p-1 text-gray-400 hover:text-gray-600"
             onClick={() => setMobileOpen(false)}
@@ -158,31 +184,31 @@ export default function Layout() {
           </button>
         </div>
 
-        {/* Nav */}
+        {/* Nav principal */}
         <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {allNavItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              title={collapsed ? item.label : undefined}
-              onClick={() => setMobileOpen(false)}
-              className={({ isActive }) => [
-                'flex items-center gap-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
-                collapsed ? 'md:justify-center md:px-0 px-3' : 'px-3',
-                isActive
-                  ? 'bg-green-50 text-green-700'
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900',
-              ].join(' ')}
-            >
-              {item.icon}
-              <span className={[
-                'whitespace-nowrap overflow-hidden transition-all duration-300',
-                collapsed ? 'md:max-w-0 md:opacity-0' : 'max-w-[160px] opacity-100',
-              ].join(' ')}>
-                {item.label}
-              </span>
-            </NavLink>
-          ))}
+          {/* Sección Plataforma — solo super admin, aparece primero */}
+          {platformNavItems.length > 0 && (
+            <>
+              <div className={['pb-1', collapsed ? 'md:hidden' : ''].join(' ')}>
+                <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Plataforma</p>
+              </div>
+              {collapsed && <div className="border-t border-gray-100 my-2" />}
+              {platformNavItems.map(navLink)}
+              <div className="border-t border-gray-100 my-2" />
+            </>
+          )}
+
+          {/* Sección Organización */}
+          {orgNavItems.length > 0 && (
+            <>
+              {platformNavItems.length > 0 && (
+                <div className={['pb-1', collapsed ? 'md:hidden' : ''].join(' ')}>
+                  <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Organización</p>
+                </div>
+              )}
+              {orgNavItems.map(navLink)}
+            </>
+          )}
         </nav>
 
         {/* Usuario + logout */}
@@ -207,7 +233,11 @@ export default function Layout() {
               collapsed ? 'md:max-w-0 md:opacity-0' : 'max-w-[160px] opacity-100',
             ].join(' ')}>
               <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
-              <p className="text-xs text-gray-500 truncate">{user?.role}</p>
+              {roleName && (
+                <span className={`inline-block px-1.5 py-0.5 rounded text-xs font-medium ${getRoleColor(roleName)}`}>
+                  {roleName}
+                </span>
+              )}
             </div>
           </NavLink>
 

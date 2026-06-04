@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { login } from '../../api/auth'
 
@@ -17,7 +17,7 @@ export default function LoginPage() {
     setLoading(true)
     try {
       const data = await login(email, password)
-      setAuth(data.user, data.token)
+      setAuth(data.user, data.token, data.organization, data.permissions)
       navigate('/dashboard')
     } catch {
       setError('Credenciales inválidas. Verifica tu email y contraseña.')
@@ -90,8 +90,14 @@ export default function LoginPage() {
           </form>
         </div>
 
-        <p className="text-center text-xs text-gray-400 mt-6">
-          TraceChain © 2026 · FuSoft
+        <p className="text-center text-sm text-gray-500 mt-4">
+          ¿No tienes cuenta?{' '}
+          <Link to="/register" className="text-green-600 hover:underline font-medium">
+            Registra tu empresa
+          </Link>
+        </p>
+        <p className="text-center text-xs text-gray-400 mt-2">
+          TraceChain © 2026 · 
         </p>
       </div>
     </div>

@@ -109,7 +109,7 @@ export default function MovementsPage() {
             className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
           >
             <option value="">Todos los tipos</option>
-            {Object.entries(movementLabels).map(([v, l]) => (
+            {Object.entries(MOVEMENT_TYPE_LABELS).map(([v, l]) => (
               <option key={v} value={v}>{l}</option>
             ))}
           </select>
@@ -221,8 +221,8 @@ export default function MovementsPage() {
             {movements.map((movement: Movement) => (
               <div key={movement.id} className="p-4 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${movementColors[movement.type]}`}>
-                    {movementLabels[movement.type]}
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${MOVEMENT_TYPE_COLORS[movement.type]}`}>
+                    {MOVEMENT_TYPE_LABELS[movement.type]}
                   </span>
                   <span className="text-xs text-gray-400">
                     {new Date(movement.createdAt).toLocaleDateString('es-CO')}

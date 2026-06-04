@@ -30,16 +30,42 @@ export const MOVEMENT_TYPE_LABELS: Record<string, string> = {
   STATUS_CHANGED: 'Cambio de estado',
 }
 
-export const ROLE_COLORS: Record<string, string> = {
-  ADMIN: 'bg-purple-100 text-purple-700',
-  OPERATOR: 'bg-blue-100 text-blue-700',
-  AUDITOR: 'bg-yellow-100 text-yellow-700',
+const ROLE_PALETTE = [
+  'bg-purple-100 text-purple-700',
+  'bg-blue-100 text-blue-700',
+  'bg-yellow-100 text-yellow-700',
+  'bg-green-100 text-green-700',
+  'bg-pink-100 text-pink-700',
+  'bg-indigo-100 text-indigo-700',
+  'bg-orange-100 text-orange-700',
+  'bg-teal-100 text-teal-700',
+]
+
+export function getRoleColor(name: string): string {
+  let hash = 0
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  return ROLE_PALETTE[Math.abs(hash) % ROLE_PALETTE.length]
 }
 
-export const ROLE_LABELS: Record<string, string> = {
-  ADMIN: 'Administrador',
-  OPERATOR: 'Operario',
-  AUDITOR: 'Auditor',
+export const PERMISSION_MODULE_LABELS: Record<string, string> = {
+  dashboard: 'Dashboard',
+  lots: 'Lotes',
+  movements: 'Movimientos',
+  audit: 'Auditoría',
+  inspections: 'Inspecciones',
+  reports: 'Reportes',
+  analytics: 'Analítica',
+  users: 'Usuarios',
+  roles: 'Roles',
+  organizations: 'Organizaciones',
+  plans: 'Planes',
+  settings: 'Configuración',
+}
+
+export const PLAN_LABELS: Record<string, string> = {
+  FREE: 'Gratis',
+  PRO: 'Pro',
+  ENTERPRISE: 'Empresarial',
 }
 
 export const AUDIT_ACTION_COLORS: Record<string, string> = {

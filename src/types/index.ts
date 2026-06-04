@@ -1,12 +1,42 @@
-export type Role = 'ADMIN' | 'OPERATOR' | 'AUDITOR'
 export type LotStatus = 'ACTIVE' | 'EXPIRED' | 'QUARANTINE' | 'DEPLETED'
 export type MovementType = 'CREATED' | 'TRANSFERRED' | 'TRANSFORMED' | 'SPLIT' | 'MERGED' | 'STATUS_CHANGED'
+
+export interface Organization {
+  id: string
+  name: string
+  slug: string
+  status: 'ACTIVE' | 'SUSPENDED'
+  planId: string
+  plan?: Plan
+  createdAt: string
+  updatedAt: string
+}
+
+export interface Permission {
+  id: string
+  key: string
+  module: string
+  action: string
+  label: string
+}
+
+export interface DynamicRole {
+  id: string
+  name: string
+  description?: string | null
+  isSystem: boolean
+  organizationId?: string | null
+  permissions?: Permission[]
+  createdAt?: string
+}
 
 export interface User {
   id: string
   name: string
   email: string
-  role: Role
+  role?: { id: string; name: string } | null
+  organizationId?: string | null
+  isSuperAdmin?: boolean
   createdAt: string
   updatedAt: string
 }
@@ -104,6 +134,45 @@ export interface Inspection {
   updatedAt: string
 }
 
+export type BillingPeriod = 'MONTHLY' | 'YEARLY' | 'ONE_TIME'
+
+export interface Plan {
+  id: string
+  key: string
+  name: string
+  description?: string | null
+  price: number
+  currency: string
+  billingPeriod: BillingPeriod
+  isActive: boolean
+  sortOrder: number
+  limits: Record<string, number | null>
+  features: Record<string, boolean>
+  stripeProductId?: string | null
+  stripePriceId?: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface PlanLimitDef {
+  key: string
+  label: string
+  description: string
+  default: number | null
+}
+
+export interface PlanFeatureDef {
+  key: string
+  label: string
+  description: string
+}
+
+export interface PlanCatalog {
+  limits: PlanLimitDef[]
+  features: PlanFeatureDef[]
+  billingPeriods: BillingPeriod[]
+}
+
 export interface Paginated<T> {
   data: T[]
   total: number
@@ -120,4 +189,6 @@ export interface ApiResponse<T> {
 export interface AuthResponse {
   token: string
   user: User
+  organization?: Organization | null
+  permissions?: string[]
 }

@@ -6,8 +6,13 @@ export const getUsers = async () => {
   return res.data.data
 }
 
-export const createUser = async (data: { name: string; email: string; password: string; role: string }) => {
-  const res = await client.post<ApiResponse<User>>('/auth/register', data)
+export const getUsersGlobal = async () => {
+  const res = await client.get<ApiResponse<User[]>>('/users?scope=all')
+  return res.data.data
+}
+
+export const createUser = async (data: { name: string; email: string; password: string; roleId: string }) => {
+  const res = await client.post<ApiResponse<User>>('/users', data)
   return res.data.data
 }
 
@@ -16,7 +21,7 @@ export const getUserById = async (id: string) => {
   return res.data.data
 }
 
-export const updateUser = async (id: string, data: Partial<User>) => {
+export const updateUser = async (id: string, data: { name?: string; roleId?: string }) => {
   const res = await client.patch<ApiResponse<User>>(`/users/${id}`, data)
   return res.data.data
 }

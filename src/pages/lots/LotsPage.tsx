@@ -186,8 +186,8 @@ export default function LotsPage() {
                     <p className="font-medium text-gray-900">{lot.name}</p>
                     <p className="text-xs font-mono text-gray-500 mt-0.5">{lot.code}</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${statusColors[lot.status]}`}>
-                    {statusLabels[lot.status]}
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${LOT_STATUS_COLORS[lot.status]}`}>
+                    {LOT_STATUS_LABELS[lot.status]}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm text-gray-600">

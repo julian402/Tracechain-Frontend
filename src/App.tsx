@@ -3,11 +3,13 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { useAuth } from './hooks/useAuth'
+import { usePermissions } from './hooks/usePermissions'
 import { ScrollToTop } from './components/ScrollToTop'
 import Layout from './components/layout/Layout'
 import { ErrorBoundary } from './components/ErrorBoundary'
 
 const LoginPage       = lazy(() => import('./pages/auth/LoginPage'))
+const RegisterPage    = lazy(() => import('./pages/auth/RegisterPage'))
 const DashboardPage   = lazy(() => import('./pages/dashboard/DashboardPage'))
 const LotsPage        = lazy(() => import('./pages/lots/LotsPage'))
 const LotDetailPage   = lazy(() => import('./pages/lots/LotDetailPage'))
@@ -17,6 +19,9 @@ const InspectionsPage = lazy(() => import('./pages/inspections/InspectionsPage')
 const UsersPage       = lazy(() => import('./pages/users/UsersPage'))
 const ProfilePage     = lazy(() => import('./pages/profile/ProfilePage'))
 const ReportsPage     = lazy(() => import('./pages/reports/ReportsPage'))
+const PlansPage             = lazy(() => import('./pages/admin/PlansPage'))
+const OrganizationsPage     = lazy(() => import('./pages/admin/OrganizationsPage'))
+const GlobalUsersPage       = lazy(() => import('./pages/admin/GlobalUsersPage'))
 const PublicLotPage   = lazy(() => import('./pages/public/PublicLotPage'))
 const NotFoundPage    = lazy(() => import('./pages/NotFoundPage'))
 
@@ -38,9 +43,15 @@ const PrivateRoute = ({ children }: { children: React.ReactNode }) => {
   const { isAuthenticated } = useAuth()
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />
 }
-const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuth()
-  return user?.role === 'ADMIN' ? <>{children}</> : <Navigate to="/dashboard" />
+
+const SuperAdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isSuperAdmin } = useAuth()
+  return isSuperAdmin ? <>{children}</> : <Navigate to="/dashboard" />
+}
+
+const PermissionRoute = ({ permission, children }: { permission: string; children: React.ReactNode }) => {
+  const { can } = usePermissions()
+  return can(permission) ? <>{children}</> : <Navigate to="/dashboard" />
 }
 
 function App() {
@@ -50,33 +61,48 @@ function App() {
         <Toaster position="top-right" richColors />
         <ScrollToTop />
         <ErrorBoundary>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/public/:qrCode" element={<PublicLotPage />} />
-            <Route path="/" element={
-              <PrivateRoute>
-                <Layout />
-              </PrivateRoute>
-            }>
-              <Route index element={<Navigate to="/dashboard" />} />
-              <Route path="dashboard"   element={<DashboardPage />} />
-              <Route path="lots"        element={<LotsPage />} />
-              <Route path="lots/:id"    element={<LotDetailPage />} />
-              <Route path="movements"   element={<MovementsPage />} />
-              <Route path="audit"       element={<AuditPage />} />
-              <Route path="inspections" element={<InspectionsPage />} />
-              <Route path="profile"     element={<ProfilePage />} />
-              <Route path="reports"     element={<ReportsPage />} />
-              <Route path="users" element={
-                <AdminRoute>
-                  <UsersPage />
-                </AdminRoute>
-              } />
-            </Route>
-            <Route path="*" element={<NotFoundPage />} />
-          </Routes>
-        </Suspense>
+          <Suspense fallback={<PageLoader />}>
+            <Routes>
+              <Route path="/login"    element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/public/:qrCode" element={<PublicLotPage />} />
+              <Route path="/" element={
+                <PrivateRoute>
+                  <Layout />
+                </PrivateRoute>
+              }>
+                <Route index element={<Navigate to="/dashboard" />} />
+                <Route path="dashboard"   element={<DashboardPage />} />
+                <Route path="lots"        element={<LotsPage />} />
+                <Route path="lots/:id"    element={<LotDetailPage />} />
+                <Route path="movements"   element={<MovementsPage />} />
+                <Route path="audit"       element={<AuditPage />} />
+                <Route path="inspections" element={<InspectionsPage />} />
+                <Route path="profile"     element={<ProfilePage />} />
+                <Route path="reports" element={
+                  <PermissionRoute permission="reports:read">
+                    <ReportsPage />
+                  </PermissionRoute>
+                } />
+                <Route path="users" element={
+                  <PermissionRoute permission="users:manage">
+                    <UsersPage />
+                  </PermissionRoute>
+                } />
+                {/* Plataforma — solo super admin */}
+                <Route path="admin/plans" element={
+                  <SuperAdminRoute><PlansPage /></SuperAdminRoute>
+                } />
+                <Route path="admin/organizations" element={
+                  <SuperAdminRoute><OrganizationsPage /></SuperAdminRoute>
+                } />
+                <Route path="admin/users" element={
+                  <SuperAdminRoute><GlobalUsersPage /></SuperAdminRoute>
+                } />
+              </Route>
+              <Route path="*" element={<NotFoundPage />} />
+            </Routes>
+          </Suspense>
         </ErrorBoundary>
       </BrowserRouter>
     </QueryClientProvider>

@@ -3,9 +3,10 @@ import { useMutation } from '@tanstack/react-query'
 import { useAuth } from '../../hooks/useAuth'
 import { updateUser, changePassword } from '../../api/users'
 import { notify } from '../../lib/toast'
+import { getRoleColor } from '../../lib/constants'
 
 export default function ProfilePage() {
-  const { user, setAuth, token } = useAuth()
+  const { user, setAuth, token, organization, permissions } = useAuth()
   const [nameForm, setNameForm] = useState({ name: user?.name ?? '' })
   const [pwdForm, setPwdForm] = useState({ currentPassword: '', newPassword: '', confirm: '' })
   const [pwdError, setPwdError] = useState('')
@@ -13,7 +14,7 @@ export default function ProfilePage() {
   const updateMutation = useMutation({
     mutationFn: (data: { name: string }) => updateUser(user!.id, data),
     onSuccess: (updated) => {
-      setAuth(updated, token!)
+      setAuth(updated, token!, organization, permissions)
       notify.success('Perfil actualizado')
     },
     onError: (e) => notify.apiError(e),
@@ -44,14 +45,7 @@ export default function ProfilePage() {
     pwdMutation.mutate({ currentPassword: pwdForm.currentPassword, newPassword: pwdForm.newPassword })
   }
 
-  const roleColors: Record<string, string> = {
-    ADMIN: 'bg-purple-100 text-purple-700',
-    OPERATOR: 'bg-blue-100 text-blue-700',
-    AUDITOR: 'bg-yellow-100 text-yellow-700',
-  }
-  const roleLabels: Record<string, string> = {
-    ADMIN: 'Administrador', OPERATOR: 'Operario', AUDITOR: 'Auditor'
-  }
+  const roleName = user?.role?.name ?? ''
 
   return (
     <div className="p-6 max-w-2xl mx-auto space-y-6">
@@ -68,9 +62,11 @@ export default function ProfilePage() {
           <div>
             <p className="font-semibold text-gray-900">{user?.name}</p>
             <p className="text-sm text-gray-500">{user?.email}</p>
-            <span className={`mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium ${roleColors[user?.role ?? '']}`}>
-              {roleLabels[user?.role ?? '']}
-            </span>
+            {roleName && (
+              <span className={`mt-1 inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getRoleColor(roleName)}`}>
+                {roleName}
+              </span>
+            )}
           </div>
         </div>
 

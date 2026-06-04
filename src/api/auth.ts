@@ -6,7 +6,15 @@ export const login = async (email: string, password: string) => {
   return res.data.data
 }
 
-export const register = async (name: string, email: string, password: string, role?: string) => {
-  const res = await client.post<ApiResponse<AuthResponse>>('/auth/register', { name, email, password, role })
+export interface RegisterOrgPayload {
+  organizationName: string
+  slug?: string
+  name: string
+  email: string
+  password: string
+}
+
+export const registerOrg = async (data: RegisterOrgPayload) => {
+  const res = await client.post<ApiResponse<AuthResponse>>('/auth/register-org', data)
   return res.data.data
 }
