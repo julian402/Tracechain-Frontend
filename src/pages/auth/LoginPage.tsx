@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { login } from '../../api/auth'
+import { PasswordInput } from '../../components/ui/PasswordInput'
+import { EMAIL_PATTERN, validateEmail } from '../../lib/validation'
 
 export default function LoginPage() {
   const navigate = useNavigate()
@@ -14,6 +16,10 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
+    if (!validateEmail(email)) {
+      setError('Ingresa un correo válido, por ejemplo admin@empresa.com.')
+      return
+    }
     setLoading(true)
     try {
       const data = await login(email, password)
@@ -61,7 +67,9 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                pattern={EMAIL_PATTERN.source}
                 placeholder="admin@tracechain.com"
+                title="Ingresa un correo válido, por ejemplo admin@empresa.com"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
@@ -70,13 +78,12 @@ export default function LoginPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Contraseña
               </label>
-              <input
-                type="password"
+              <PasswordInput
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={setPassword}
                 required
                 placeholder="••••••••"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                autoComplete="current-password"
               />
             </div>
 

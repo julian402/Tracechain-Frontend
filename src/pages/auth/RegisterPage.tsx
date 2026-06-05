@@ -3,6 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
 import { registerOrg } from '../../api/auth'
 import { getApiMessage } from '../../lib/apiError'
+import { PasswordInput } from '../../components/ui/PasswordInput'
+import { EMAIL_PATTERN, PASSWORD_REQUIREMENTS, getPasswordErrors, normalizeSlug, validateEmail, validatePassword } from '../../lib/validation'
 
 export default function RegisterPage() {
   const navigate = useNavigate()
@@ -23,14 +25,23 @@ export default function RegisterPage() {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, [key]: e.target.value }),
   })
 
+  const slugField = {
+    value: form.slug,
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => setForm({ ...form, slug: normalizeSlug(e.target.value) }),
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (form.password !== form.confirm) {
       setError('Las contraseñas no coinciden.')
       return
     }
-    if (form.password.length < 6) {
-      setError('La contraseña debe tener al menos 6 caracteres.')
+    if (!validateEmail(form.email)) {
+      setError('Ingresa un correo válido, por ejemplo admin@empresa.com.')
+      return
+    }
+    if (!validatePassword(form.password)) {
+      setError(`La contraseña debe tener ${getPasswordErrors(form.password).join(', ')}.`)
       return
     }
     setError('')
@@ -95,10 +106,15 @@ export default function RegisterPage() {
               </label>
               <input
                 type="text"
-                {...field('slug')}
+                {...slugField}
                 placeholder="frutas-del-valle"
+                pattern="^[a-z0-9-]+$"
+                title="Usa solo letras minúsculas, números y guiones. Ejemplo: frutas-del-valle"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
               />
+              <p className="mt-1 text-xs text-gray-400">
+                Se guarda en minúsculas y solo permite letras, números y guiones.
+              </p>
             </div>
 
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide pt-2">Datos del administrador</p>
@@ -119,31 +135,34 @@ export default function RegisterPage() {
               <input
                 type="email"
                 required
+                pattern={EMAIL_PATTERN.source}
                 {...field('email')}
                 placeholder="admin@tuempresa.com"
+                title="Ingresa un correo válido, por ejemplo admin@empresa.com"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Contraseña *</label>
-              <input
-                type="password"
+              <PasswordInput
+                value={form.password}
+                onChange={(password) => setForm({ ...form, password })}
                 required
-                {...field('password')}
-                placeholder="Mínimo 6 caracteres"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Mínimo 8 caracteres"
+                autoComplete="new-password"
               />
+              <p className="mt-1 text-xs text-gray-400">{PASSWORD_REQUIREMENTS}</p>
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar contraseña *</label>
-              <input
-                type="password"
+              <PasswordInput
+                value={form.confirm}
+                onChange={(confirm) => setForm({ ...form, confirm })}
                 required
-                {...field('confirm')}
                 placeholder="Repite la contraseña"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                autoComplete="new-password"
               />
             </div>
 

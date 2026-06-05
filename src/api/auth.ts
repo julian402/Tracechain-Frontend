@@ -15,6 +15,6 @@ export interface RegisterOrgPayload {
 }
 
 export const registerOrg = async (data: RegisterOrgPayload) => {
-  const res = await client.post<ApiResponse<AuthResponse>>('/auth/register-org', data)
+  const res = await client.post<ApiResponse<AuthResponse>>('/auth/register', data)
   return res.data.data
 }

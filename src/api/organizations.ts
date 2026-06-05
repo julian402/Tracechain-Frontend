@@ -11,6 +11,14 @@ export interface CreateOrgPayload {
   name: string
   slug?: string
   planId: string
+  customLimits?: Record<string, number | null>
+}
+
+export interface UpdateOrgPayload {
+  name?: string
+  slug?: string
+  planId?: string
+  customLimits?: Record<string, number | null>
 }
 
 export const createOrganization = async (data: CreateOrgPayload) => {
@@ -30,6 +38,11 @@ export const getMyOrganization = async () => {
 
 export const updateMyOrganization = async (data: { name?: string; slug?: string }) => {
   const res = await client.patch<ApiResponse<OrgUsage['organization']>>('/organizations/me', data)
+  return res.data.data
+}
+
+export const updateOrganization = async (id: string, data: UpdateOrgPayload) => {
+  const res = await client.patch<ApiResponse<Organization>>(`/organizations/${id}`, data)
   return res.data.data
 }
 

@@ -1,5 +1,6 @@
 // src/lib/toast.ts
 import { toast } from 'sonner'
+import { getApiMessage } from './apiError'
 
 export const notify = {
   success: (msg: string) => toast.success(msg),
@@ -14,8 +15,6 @@ export const notify = {
   inspectionCreated: () => toast.success('Inspección guardada'),
   userDeleted: () => toast.success('Usuario eliminado'),
   apiError: (err: unknown) => {
-    const message =
-      err instanceof Error ? err.message : 'Ocurrió un error inesperado'
-    toast.error(message)
+    toast.error(getApiMessage(err, 'Ocurrió un error inesperado'))
   },
 }

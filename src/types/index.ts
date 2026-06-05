@@ -8,6 +8,9 @@ export interface Organization {
   status: 'ACTIVE' | 'SUSPENDED'
   planId: string
   plan?: Plan
+  customLimits?: Record<string, number | null>
+  usersCount?: number
+  lotsCount?: number
   createdAt: string
   updatedAt: string
 }
