@@ -9,6 +9,10 @@ export interface Organization {
   planId: string
   plan?: Plan
   customLimits?: Record<string, number | null>
+  customFeatures?: Record<string, boolean>
+  analyticsConfig?: {
+    dashboardUrl?: string | null
+  }
   usersCount?: number
   lotsCount?: number
   createdAt: string

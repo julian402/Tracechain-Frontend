@@ -1,9 +1,10 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { useAuth } from './hooks/useAuth'
 import { usePermissions } from './hooks/usePermissions'
+import { getCurrentSession } from './api/auth'
 import { ScrollToTop } from './components/ScrollToTop'
 import Layout from './components/layout/Layout'
 import { ErrorBoundary } from './components/ErrorBoundary'
@@ -57,6 +58,20 @@ const PermissionRoute = ({ permission, children }: { permission: string; childre
 }
 
 function App() {
+  const { token, isAuthenticated, setAuth, logout } = useAuth()
+
+  useEffect(() => {
+    if (!isAuthenticated || !token) return
+
+    getCurrentSession()
+      .then((session) => {
+        setAuth(session.user, session.token, session.organization, session.permissions)
+      })
+      .catch(() => {
+        logout()
+      })
+  }, [isAuthenticated, setAuth, logout])
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -88,7 +103,11 @@ function App() {
                   </PermissionRoute>
                 } />
                 <Route path="roles" element={<Navigate to="/admin/roles" />} />
-                <Route path="billing" element={<PlanPage />} />
+                <Route path="billing" element={
+                  <PermissionRoute permission="users:manage">
+                    <PlanPage />
+                  </PermissionRoute>
+                } />
                 {/* Admin — solo super admin */}
                 <Route path="admin/roles" element={
                   <SuperAdminRoute><RolesPage /></SuperAdminRoute>

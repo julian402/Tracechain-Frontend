@@ -359,6 +359,7 @@ export default function RolesPage() {
       {permissionsModal && (
         <RolePermissionsModal
           role={permissionsModal}
+          organizationName={selectedOrganization?.name}
           groups={permissionGroups}
           selected={selectedPermissions}
           pending={permissionsMutation.isPending}
@@ -373,6 +374,7 @@ export default function RolesPage() {
           role={usersModal}
           users={users}
           organizationId={selectedOrganizationId}
+          organizationName={selectedOrganization?.name}
           selected={selectedUsers}
           pending={usersMutation.isPending}
           onSelectedChange={setSelectedUsers}

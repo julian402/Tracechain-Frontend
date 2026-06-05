@@ -358,7 +358,7 @@ export default function InspectionsPage() {
                                 onChange={(e) => updateFinding(index, 'type', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                               >
-                                {Object.entries(findingTypeLabels).map(([v, l]) => (
+                                {Object.entries(FINDING_TYPE_LABELS).map(([v, l]) => (
                                   <option key={v} value={v}>{l}</option>
                                 ))}
                               </select>
@@ -370,7 +370,7 @@ export default function InspectionsPage() {
                                 onChange={(e) => updateFinding(index, 'priority', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
                               >
-                                {Object.entries(priorityLabels).map(([v, l]) => (
+                                {Object.entries(PRIORITY_LABELS).map(([v, l]) => (
                                   <option key={v} value={v}>{l}</option>
                                 ))}
                               </select>

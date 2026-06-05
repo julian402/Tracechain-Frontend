@@ -7,6 +7,7 @@ interface RoleUsersModalProps {
   role: DynamicRole
   users: User[]
   organizationId: string
+  organizationName?: string
   selected: Set<string>
   pending: boolean
   onSelectedChange: (selected: Set<string>) => void
@@ -18,6 +19,7 @@ export function RoleUsersModal({
   role,
   users,
   organizationId,
+  organizationName,
   selected,
   pending,
   onSelectedChange,
@@ -61,7 +63,7 @@ export function RoleUsersModal({
   }
 
   return (
-    <Modal title={`Usuarios - ${role.name}`} onClose={onClose} size="xl">
+    <Modal title={`Usuarios - ${role.name}${organizationName ? ` (${organizationName})` : ''}`} onClose={onClose} size="xl">
       <div className="flex max-h-[calc(90vh-81px)] flex-col">
         <div className="p-5 border-b border-gray-100 space-y-4">
           <p className="text-sm text-gray-500">

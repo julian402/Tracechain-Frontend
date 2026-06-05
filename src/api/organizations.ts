@@ -12,6 +12,8 @@ export interface CreateOrgPayload {
   slug?: string
   planId: string
   customLimits?: Record<string, number | null>
+  customFeatures?: Record<string, boolean>
+  analyticsConfig?: { dashboardUrl?: string | null }
 }
 
 export interface UpdateOrgPayload {
@@ -19,6 +21,8 @@ export interface UpdateOrgPayload {
   slug?: string
   planId?: string
   customLimits?: Record<string, number | null>
+  customFeatures?: Record<string, boolean>
+  analyticsConfig?: { dashboardUrl?: string | null }
 }
 
 export const createOrganization = async (data: CreateOrgPayload) => {

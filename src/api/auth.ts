@@ -6,6 +6,11 @@ export const login = async (email: string, password: string) => {
   return res.data.data
 }
 
+export const getCurrentSession = async () => {
+  const res = await client.get<ApiResponse<AuthResponse>>('/auth/me')
+  return res.data.data
+}
+
 export interface RegisterOrgPayload {
   organizationName: string
   slug?: string

@@ -181,7 +181,7 @@ export default function AuditPage() {
             {logs.map((log: AuditLog) => (
               <div key={log.id} className="p-4 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${actionColors[log.action] ?? 'bg-gray-100 text-gray-700'}`}>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${AUDIT_ACTION_COLORS[log.action] ?? 'bg-gray-100 text-gray-700'}`}>
                     {log.action}
                   </span>
                   <span className="text-xs text-gray-400">{new Date(log.createdAt).toLocaleString('es-CO')}</span>

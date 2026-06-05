@@ -7,6 +7,7 @@ import { PermissionGroupCard } from './PermissionGroupCard'
 
 interface RolePermissionsModalProps {
   role: DynamicRole
+  organizationName?: string
   groups: PermissionGroup[]
   selected: Set<string>
   pending: boolean
@@ -17,6 +18,7 @@ interface RolePermissionsModalProps {
 
 export function RolePermissionsModal({
   role,
+  organizationName,
   groups,
   selected,
   pending,
@@ -66,7 +68,7 @@ export function RolePermissionsModal({
   }
 
   return (
-    <Modal title={`Permisos - ${role.name}`} onClose={onClose} size="2xl">
+    <Modal title={`Permisos - ${role.name}${organizationName ? ` (${organizationName})` : ''}`} onClose={onClose} size="2xl">
       <div className="flex max-h-[calc(90vh-81px)] flex-col">
         <div className="p-5 border-b border-gray-100 space-y-4">
           {role.isSystem && role.name === 'ORG_ADMIN' && (

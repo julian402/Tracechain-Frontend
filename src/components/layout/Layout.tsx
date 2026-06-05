@@ -86,7 +86,7 @@ export default function Layout() {
     ...(can('inspections:read')  ? [{ label: 'Inspecciones', path: '/inspections', icon: <InspectionsIcon /> }] : []),
     ...(can('reports:read') || can('analytics:read') ? [{ label: 'Analítica', path: '/reports', icon: <ReportsIcon /> }] : []),
     ...(can('users:manage')      ? [{ label: 'Usuarios',     path: '/users',       icon: <UsersIcon /> }]       : []),
-    ...(!isSuperAdmin            ? [{ label: 'Mi organización', path: '/billing',   icon: <BillingIcon /> }]     : []),
+    ...(can('users:manage') && !isSuperAdmin ? [{ label: 'Mi organización', path: '/billing', icon: <BillingIcon /> }] : []),
   ]
 
   const platformNavItems: NavItem[] = isSuperAdmin ? [

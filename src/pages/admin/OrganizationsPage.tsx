@@ -18,7 +18,7 @@ import { TableRowSkeleton } from '../../components/ui/Skeleton'
 import { notify } from '../../lib/toast'
 import { getApiMessage } from '../../lib/apiError'
 import { normalizeSlug } from '../../lib/validation'
-import type { Organization, Plan, PlanLimitDef } from '../../types'
+import type { Organization, Plan, PlanFeatureDef, PlanLimitDef } from '../../types'
 
 const STATUS_COLORS: Record<string, string> = {
   ACTIVE: 'bg-green-100 text-green-700',
@@ -34,9 +34,11 @@ interface OrgFormState {
   slug: string
   planId: string
   customLimits: Record<string, string>
+  customFeatures: Record<string, string>
+  analyticsDashboardUrl: string
 }
 
-const emptyForm: OrgFormState = { name: '', slug: '', planId: '', customLimits: {} }
+const emptyForm: OrgFormState = { name: '', slug: '', planId: '', customLimits: {}, customFeatures: {}, analyticsDashboardUrl: '' }
 
 const normalizeLimits = (limits: Record<string, string>) => {
   return Object.fromEntries(
@@ -51,6 +53,21 @@ const getEffectiveLimit = (org: Organization, plans: Plan[], key: string) => {
   if (custom !== undefined) return custom
   const plan = plans.find((item) => item.id === org.planId)
   return plan?.limits?.[key] ?? null
+}
+
+const normalizeFeatures = (features: Record<string, string>) => {
+  return Object.fromEntries(
+    Object.entries(features)
+      .filter(([, value]) => value !== '')
+      .map(([key, value]) => [key, value === 'true'])
+  ) as Record<string, boolean>
+}
+
+const getEffectiveFeature = (org: Organization, plans: Plan[], key: string) => {
+  const custom = org.customFeatures?.[key]
+  if (custom !== undefined) return custom
+  const plan = plans.find((item) => item.id === org.planId)
+  return plan?.features?.[key] === true
 }
 
 function LimitsFields({
@@ -85,6 +102,47 @@ function LimitsFields({
             <p className="mt-1 text-[11px] text-gray-400">{limit.description}</p>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function FeaturesFields({
+  features,
+  values,
+  onChange,
+  selectedPlan,
+}: {
+  features: PlanFeatureDef[]
+  values: Record<string, string>
+  onChange: (features: Record<string, string>) => void
+  selectedPlan?: Plan
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-800">Funciones personalizadas</h3>
+        <p className="text-xs text-gray-500">Permite habilitar o deshabilitar funciones sin cambiar el plan base.</p>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        {features.map((feature) => {
+          const planValue = selectedPlan?.features?.[feature.key] === true
+          return (
+            <div key={feature.key}>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{feature.label}</label>
+              <select
+                value={values[feature.key] ?? ''}
+                onChange={(event) => onChange({ ...values, [feature.key]: event.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              >
+                <option value="">Usar plan ({planValue ? 'habilitado' : 'deshabilitado'})</option>
+                <option value="true">Habilitado para esta organización</option>
+                <option value="false">Deshabilitado para esta organización</option>
+              </select>
+              <p className="mt-1 text-[11px] text-gray-400">{feature.description}</p>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -139,6 +197,7 @@ export default function OrganizationsPage() {
 
   const activePlans = plans.filter((p) => p.isActive)
   const limitDefs = planCatalog?.limits ?? []
+  const featureDefs = planCatalog?.features ?? []
   const selectedCreatePlan = activePlans.find((plan) => plan.id === form.planId)
   const selectedEditPlan = activePlans.find((plan) => plan.id === editForm.planId)
 
@@ -157,6 +216,10 @@ export default function OrganizationsPage() {
       customLimits: Object.fromEntries(
         Object.entries(org.customLimits ?? {}).map(([key, value]) => [key, value == null ? '' : String(value)])
       ),
+      customFeatures: Object.fromEntries(
+        Object.entries(org.customFeatures ?? {}).map(([key, value]) => [key, String(value)])
+      ),
+      analyticsDashboardUrl: org.analyticsConfig?.dashboardUrl ?? '',
     })
     setEditError('')
   }
@@ -165,11 +228,14 @@ export default function OrganizationsPage() {
     e.preventDefault()
     setFormError('')
     const customLimits = normalizeLimits(form.customLimits)
+    const customFeatures = normalizeFeatures(form.customFeatures)
     createMutation.mutate({
       name: form.name,
       slug: form.slug.trim() || undefined,
       planId: form.planId,
       ...(Object.keys(customLimits).length > 0 ? { customLimits } : {}),
+      ...(Object.keys(customFeatures).length > 0 ? { customFeatures } : {}),
+      analyticsConfig: { dashboardUrl: form.analyticsDashboardUrl.trim() || null },
     })
   }
 
@@ -184,20 +250,45 @@ export default function OrganizationsPage() {
         slug: editForm.slug.trim() || undefined,
         planId: editForm.planId,
         customLimits: normalizeLimits(editForm.customLimits),
+        customFeatures: normalizeFeatures(editForm.customFeatures),
+        analyticsConfig: { dashboardUrl: editForm.analyticsDashboardUrl.trim() || null },
       },
     })
   }
 
+  const renderActions = (org: Organization) => (
+    <div className="flex items-center justify-end gap-3 text-xs">
+      <button onClick={() => openEdit(org)} className="text-indigo-600 hover:underline font-medium">
+        Editar
+      </button>
+      {org.status === 'ACTIVE' ? (
+        <button
+          onClick={() => statusMutation.mutate({ id: org.id, active: false })}
+          className="text-red-500 hover:underline font-medium"
+        >
+          Suspender
+        </button>
+      ) : (
+        <button
+          onClick={() => statusMutation.mutate({ id: org.id, active: true })}
+          className="text-green-600 hover:underline font-medium"
+        >
+          Activar
+        </button>
+      )}
+    </div>
+  )
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="p-4 md:p-6 space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Organizaciones</h1>
           <p className="text-sm text-gray-500 mt-0.5">Gestión de empresas registradas en la plataforma</p>
         </div>
         <button
           onClick={openCreate}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700"
+          className="w-full sm:w-auto bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700"
         >
           + Nueva organización
         </button>
@@ -226,86 +317,136 @@ export default function OrganizationsPage() {
       {/* Tabla */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading ? (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                {['Organización', 'Plan', 'Usuarios', 'Lotes', 'Estado', ''].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
-            </tbody>
-          </table>
+          <>
+            <table className="hidden md:table w-full text-sm table-fixed">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  {['Organización', 'Plan', 'Usuarios', 'Lotes', 'Reportes', 'Estado', ''].map((h, index) => (
+                    <th key={h} className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase ${index >= 2 && index < 6 ? 'text-center' : index === 6 ? 'text-right' : 'text-left'}`}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={7} />)}
+              </tbody>
+            </table>
+            <div className="md:hidden divide-y divide-gray-100">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="p-4 space-y-3 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-2/3" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="h-8 bg-gray-100 rounded" />
+                    <div className="h-8 bg-gray-100 rounded" />
+                    <div className="h-8 bg-gray-100 rounded" />
+                    <div className="h-8 bg-gray-100 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         ) : orgs.length === 0 ? (
           <EmptyState message="No hay organizaciones registradas" />
         ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 border-b border-gray-200">
-              <tr>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Organización</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Plan</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Usuarios</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Lotes</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Estado</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {orgs.map((org) => (
-                <tr key={org.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-gray-900">{org.name}</p>
-                    <p className="text-xs text-gray-400 font-mono">{org.slug}</p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge color="bg-indigo-100 text-indigo-700">{org.plan?.name ?? '—'}</Badge>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {org.usersCount ?? 0}
-                    <span className="text-gray-400"> / {getEffectiveLimit(org, plans, 'users') ?? '∞'}</span>
-                  </td>
-                  <td className="px-4 py-3 text-gray-600">
-                    {org.lotsCount ?? 0}
-                    <span className="text-gray-400"> / {getEffectiveLimit(org, plans, 'lots') ?? '∞'}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge color={STATUS_COLORS[org.status]}>{STATUS_LABELS[org.status]}</Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-3 text-xs">
-                      <button onClick={() => openEdit(org)} className="text-indigo-600 hover:underline font-medium">
-                        Editar
-                      </button>
-                      {org.status === 'ACTIVE' ? (
-                        <button
-                          onClick={() => statusMutation.mutate({ id: org.id, active: false })}
-                          className="text-red-500 hover:underline font-medium"
-                        >
-                          Suspender
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => statusMutation.mutate({ id: org.id, active: true })}
-                          className="text-green-600 hover:underline font-medium"
-                        >
-                          Activar
-                        </button>
-                      )}
-                    </div>
-                  </td>
+          <>
+            <table className="hidden md:table w-full text-sm table-fixed">
+              <colgroup>
+                <col className="w-[28%]" />
+                <col className="w-[12%]" />
+                <col className="w-[11%]" />
+                <col className="w-[11%]" />
+                <col className="w-[13%]" />
+                <col className="w-[12%]" />
+                <col className="w-[13%]" />
+              </colgroup>
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase">Organización</th>
+                  <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Plan</th>
+                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase">Usuarios</th>
+                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase">Lotes</th>
+                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase">Reportes</th>
+                  <th className="text-center px-4 py-3 text-xs font-medium text-gray-500 uppercase">Estado</th>
+                  <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase">Acciones</th>
                 </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {orgs.map((org) => (
+                  <tr key={org.id} className="hover:bg-gray-50">
+                    <td className="px-5 py-4">
+                      <p className="font-medium text-gray-900 truncate">{org.name}</p>
+                      <p className="text-xs text-gray-400 font-mono truncate">{org.slug}</p>
+                    </td>
+                    <td className="px-4 py-4">
+                      <Badge color="bg-indigo-100 text-indigo-700">{org.plan?.name ?? '—'}</Badge>
+                    </td>
+                    <td className="px-4 py-4 text-center text-gray-600 whitespace-nowrap">
+                      {org.usersCount ?? 0}
+                      <span className="text-gray-400"> / {getEffectiveLimit(org, plans, 'users') ?? '∞'}</span>
+                    </td>
+                    <td className="px-4 py-4 text-center text-gray-600 whitespace-nowrap">
+                      {org.lotsCount ?? 0}
+                      <span className="text-gray-400"> / {getEffectiveLimit(org, plans, 'lots') ?? '∞'}</span>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <Badge color={getEffectiveFeature(org, plans, 'reports') ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
+                        {getEffectiveFeature(org, plans, 'reports') ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-4 text-center">
+                      <Badge color={STATUS_COLORS[org.status]}>{STATUS_LABELS[org.status]}</Badge>
+                    </td>
+                    <td className="px-5 py-4">
+                      {renderActions(org)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+
+            <div className="md:hidden divide-y divide-gray-100">
+              {orgs.map((org) => (
+                <div key={org.id} className="p-4 space-y-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="font-medium text-gray-900 truncate">{org.name}</p>
+                      <p className="text-xs text-gray-400 font-mono truncate">{org.slug}</p>
+                    </div>
+                    <Badge color={STATUS_COLORS[org.status]}>{STATUS_LABELS[org.status]}</Badge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Plan</p>
+                      <Badge color="bg-indigo-100 text-indigo-700">{org.plan?.name ?? '—'}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Reportes</p>
+                      <Badge color={getEffectiveFeature(org, plans, 'reports') ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}>
+                        {getEffectiveFeature(org, plans, 'reports') ? 'Activo' : 'Inactivo'}
+                      </Badge>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Usuarios</p>
+                      <p className="text-gray-700">{org.usersCount ?? 0}<span className="text-gray-400"> / {getEffectiveLimit(org, plans, 'users') ?? '∞'}</span></p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Lotes</p>
+                      <p className="text-gray-700">{org.lotsCount ?? 0}<span className="text-gray-400"> / {getEffectiveLimit(org, plans, 'lots') ?? '∞'}</span></p>
+                    </div>
+                  </div>
+
+                  {renderActions(org)}
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+          </>
         )}
       </div>
 
       {/* Modal crear organización */}
       {showCreate && (
-        <Modal title="Nueva organización" onClose={() => { setShowCreate(false); setFormError('') }} size="lg">
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <Modal title="Nueva organización" onClose={() => { setShowCreate(false); setFormError('') }} size="xl">
+          <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4">
             {formError && <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{formError}</p>}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Nombre *</label>
@@ -351,6 +492,27 @@ export default function OrganizationsPage() {
                 selectedPlan={selectedCreatePlan}
               />
             )}
+            {featureDefs.length > 0 && (
+              <FeaturesFields
+                features={featureDefs}
+                values={form.customFeatures}
+                onChange={(customFeatures) => setForm({ ...form, customFeatures })}
+                selectedPlan={selectedCreatePlan}
+              />
+            )}
+            <div className="space-y-2">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-800">Dashboard de analítica</h3>
+                <p className="text-xs text-gray-500">URL del dashboard de Superset para esta organización. Si queda vacío se usará el dashboard global del entorno.</p>
+              </div>
+              <input
+                type="url"
+                value={form.analyticsDashboardUrl}
+                onChange={(e) => setForm({ ...form, analyticsDashboardUrl: e.target.value })}
+                placeholder="http://localhost:8088/superset/dashboard/1/"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
             <div className="flex gap-3 pt-2">
               <button type="button" onClick={() => setShowCreate(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm">
                 Cancelar
@@ -365,8 +527,8 @@ export default function OrganizationsPage() {
 
       {/* Modal editar organización */}
       {editOrg && (
-        <Modal title={`Editar organización: ${editOrg.name}`} onClose={() => setEditOrg(null)} size="lg">
-          <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+        <Modal title={`Editar organización: ${editOrg.name}`} onClose={() => setEditOrg(null)} size="xl">
+          <form onSubmit={handleEditSubmit} className="p-4 sm:p-6 space-y-4">
             {editError && <p className="text-sm text-red-600 bg-red-50 rounded-lg p-3">{editError}</p>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -410,6 +572,27 @@ export default function OrganizationsPage() {
                 selectedPlan={selectedEditPlan}
               />
             )}
+            {featureDefs.length > 0 && (
+              <FeaturesFields
+                features={featureDefs}
+                values={editForm.customFeatures}
+                onChange={(customFeatures) => setEditForm({ ...editForm, customFeatures })}
+                selectedPlan={selectedEditPlan}
+              />
+            )}
+            <div className="space-y-2">
+              <div>
+                <h3 className="text-sm font-semibold text-gray-800">Dashboard de analítica</h3>
+                <p className="text-xs text-gray-500">URL del dashboard de Superset para esta organización. Si queda vacío se usará el dashboard global del entorno.</p>
+              </div>
+              <input
+                type="url"
+                value={editForm.analyticsDashboardUrl}
+                onChange={(e) => setEditForm({ ...editForm, analyticsDashboardUrl: e.target.value })}
+                placeholder="http://localhost:8088/superset/dashboard/1/"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
             <div className="flex gap-3">
               <button type="button" onClick={() => setEditOrg(null)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-sm">
                 Cancelar

@@ -8,6 +8,10 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+  build: {
+    sourcemap: false,
+    reportCompressedSize: true,
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

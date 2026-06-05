@@ -9,7 +9,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Modal } from '../../components/ui/Modal'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { getRoleColor } from '../../lib/constants'
-import type { User } from '../../types'
+import type { DynamicRole, User } from '../../types'
 
 const initialForm = { name: '', email: '', password: '', roleId: '' }
 
@@ -23,14 +23,14 @@ export default function UsersPage() {
   const [editError, setEditError] = useState('')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
-  const { data: users = [], isLoading } = useQuery({
+  const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ['users'],
     queryFn: getUsers,
   })
 
-  const { data: roles = [] } = useQuery({
+  const { data: roles = [] } = useQuery<DynamicRole[]>({
     queryKey: ['roles'],
-    queryFn: getRoles,
+    queryFn: () => getRoles(),
   })
 
   const createMutation = useMutation({
@@ -112,13 +112,13 @@ export default function UsersPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 md:gap-4">
         <div className="bg-white rounded-xl border border-gray-200 p-4 col-span-2 sm:col-span-1">
           <p className="text-xs text-gray-500 mb-1">Total usuarios</p>
-          <p className="text-2xl font-bold text-gray-900">{(users as User[]).length}</p>
+          <p className="text-2xl font-bold text-gray-900">{users.length}</p>
         </div>
         {roles.slice(0, 3).map((role) => (
           <div key={role.id} className="bg-white rounded-xl border border-gray-200 p-4">
             <p className="text-xs text-gray-500 mb-1 truncate">{role.name}</p>
             <p className="text-2xl font-bold text-gray-900">
-              {(users as User[]).filter((u) => u.role?.id === role.id).length}
+              {users.filter((u) => u.role?.id === role.id).length}
             </p>
           </div>
         ))}
@@ -153,7 +153,7 @@ export default function UsersPage() {
               ))}
             </div>
           </>
-        ) : (users as User[]).length === 0 ? (
+        ) : users.length === 0 ? (
           <EmptyState message="No hay usuarios registrados" />
         ) : (
           <>
@@ -169,7 +169,7 @@ export default function UsersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {(users as User[]).map((user) => (
+                {users.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
@@ -203,7 +203,7 @@ export default function UsersPage() {
 
             {/* Cards — móvil */}
             <div className="md:hidden divide-y divide-gray-100">
-              {(users as User[]).map((user) => (
+              {users.map((user) => (
                 <div key={user.id} className="p-4 space-y-2">
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 bg-gray-200 rounded-full flex items-center justify-center shrink-0">
