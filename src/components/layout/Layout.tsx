@@ -40,6 +40,11 @@ const ReportsIcon = () => (
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
   </svg>
 )
+const InventoryIcon = () => (
+  <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+  </svg>
+)
 const UsersIcon = () => (
   <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -81,6 +86,7 @@ export default function Layout() {
   const orgNavItems: NavItem[] = [
     { label: 'Dashboard',    path: '/dashboard',    icon: <DashboardIcon /> },
     ...(can('lots:read')         ? [{ label: 'Lotes',        path: '/lots',        icon: <LotsIcon /> }]        : []),
+    ...(can('inventory:read')    ? [{ label: 'Inventario',   path: '/inventory',   icon: <InventoryIcon /> }]   : []),
     ...(can('movements:read')    ? [{ label: 'Movimientos',  path: '/movements',   icon: <MovementsIcon /> }]   : []),
     ...(can('audit:read')        ? [{ label: 'Auditoría',    path: '/audit',       icon: <AuditIcon /> }]       : []),
     ...(can('inspections:read')  ? [{ label: 'Inspecciones', path: '/inspections', icon: <InspectionsIcon /> }] : []),

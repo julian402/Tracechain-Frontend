@@ -200,8 +200,46 @@ export default function LotDetailPage() {
                   {new Date(lot.createdAt).toLocaleDateString('es-CO')}
                 </p>
               </div>
+              {lot.supplier && (
+                <div>
+                  <p className="text-gray-500">Proveedor</p>
+                  <p className="font-medium text-gray-900">{lot.supplier.name}</p>
+                </div>
+              )}
             </div>
           </div>
+
+          {/* Materias primas utilizadas (trazabilidad de elaboración) */}
+          {lot.ingredients && lot.ingredients.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200">
+              <div className="p-4 border-b border-gray-200">
+                <h2 className="font-semibold text-gray-900">Materias primas utilizadas</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Insumos que componen este producto y su origen</p>
+              </div>
+              <table className="w-full text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    {['Materia prima', 'Lote', 'Cantidad usada', 'Proveedor', 'Vence'].map((h) => (
+                      <th key={h} className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {lot.ingredients.map((ing) => (
+                    <tr key={ing.id}>
+                      <td className="px-4 py-2 font-medium text-gray-800">{ing.rawMaterialBatch?.name ?? '—'}</td>
+                      <td className="px-4 py-2 font-mono text-xs text-gray-500">{ing.rawMaterialBatch?.batchNumber ?? '—'}</td>
+                      <td className="px-4 py-2 text-gray-600">{ing.quantityUsed} {ing.unit}</td>
+                      <td className="px-4 py-2 text-gray-600">{ing.rawMaterialBatch?.supplier?.name ?? '—'}</td>
+                      <td className="px-4 py-2 text-gray-600">
+                        {ing.rawMaterialBatch?.expirationDate ? new Date(ing.rawMaterialBatch.expirationDate).toLocaleDateString('es-CO') : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
 
           {/* Historial de movimientos */}
           <div className="bg-white rounded-xl border border-gray-200">

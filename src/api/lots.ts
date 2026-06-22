@@ -21,7 +21,11 @@ export const searchLots = async (params: { status?: string; search?: string; fro
   return res.data.data
 }
 
-export const createLot = async (data: Partial<Lot>) => {
+export interface CreateLotPayload extends Partial<Lot> {
+  ingredients?: { rawMaterialBatchId: string; quantityUsed: number; unit: string }[]
+}
+
+export const createLot = async (data: CreateLotPayload) => {
   const res = await client.post<ApiResponse<Lot>>('/lots', data)
   return res.data.data
 }

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { registerOrg } from '../../api/auth'
+import { registerOrg, verifyRegistration, resendRegistrationOtp } from '../../api/auth'
 import { getApiMessage } from '../../lib/apiError'
 import { PasswordInput } from '../../components/ui/PasswordInput'
 import { EMAIL_PATTERN, PASSWORD_REQUIREMENTS, getPasswordErrors, normalizeSlug, validateEmail, validatePassword } from '../../lib/validation'
@@ -9,6 +9,7 @@ import { EMAIL_PATTERN, PASSWORD_REQUIREMENTS, getPasswordErrors, normalizeSlug,
 export default function RegisterPage() {
   const navigate = useNavigate()
   const { setAuth } = useAuth()
+  const [step, setStep] = useState<'form' | 'otp'>('form')
   const [form, setForm] = useState({
     organizationName: '',
     slug: '',
@@ -17,7 +18,9 @@ export default function RegisterPage() {
     password: '',
     confirm: '',
   })
+  const [code, setCode] = useState('')
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(false)
 
   const field = (key: keyof typeof form) => ({
@@ -47,17 +50,50 @@ export default function RegisterPage() {
     setError('')
     setLoading(true)
     try {
-      const data = await registerOrg({
+      await registerOrg({
         organizationName: form.organizationName,
         slug: form.slug.trim() || undefined,
         name: form.name,
         email: form.email,
         password: form.password,
       })
+      setStep('otp')
+      setInfo('Te enviamos un código de verificación a tu correo. Vence en 10 minutos. La organización se creará al confirmarlo.')
+    } catch (err) {
+      setError(getApiMessage(err, 'No se pudo iniciar el registro. Verifica los datos e intenta de nuevo.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (!/^\d{6}$/.test(code)) {
+      setError('El código debe tener 6 dígitos.')
+      return
+    }
+    setLoading(true)
+    try {
+      const data = await verifyRegistration(form.email, code)
       setAuth(data.user, data.token, data.organization, data.permissions)
       navigate('/dashboard')
     } catch (err) {
-      setError(getApiMessage(err, 'No se pudo crear la organización. Verifica los datos e intenta de nuevo.'))
+      setError(getApiMessage(err, 'Código inválido o expirado. Solicita uno nuevo si es necesario.'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResend = async () => {
+    setError('')
+    setInfo('')
+    setLoading(true)
+    try {
+      await resendRegistrationOtp(form.email)
+      setInfo('Te enviamos un nuevo código a tu correo.')
+    } catch (err) {
+      setError(getApiMessage(err, 'No se pudo reenviar el código. Intenta de nuevo.'))
     } finally {
       setLoading(false)
     }
@@ -78,14 +114,66 @@ export default function RegisterPage() {
         </div>
 
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Registro de empresa</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-6">
+            {step === 'form' ? 'Registro de empresa' : 'Verifica tu correo'}
+          </h2>
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {error}
             </div>
           )}
+          {info && !error && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              {info}
+            </div>
+          )}
 
+          {step === 'otp' ? (
+            <form onSubmit={handleVerify} className="space-y-4">
+              <p className="text-sm text-gray-500">
+                Ingresa el código de 6 dígitos que enviamos a <span className="font-medium text-gray-700">{form.email}</span>.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Código de verificación</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  required
+                  placeholder="••••••"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-center text-lg tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? 'Creando organización...' : 'Verificar y crear organización'}
+              </button>
+              <div className="flex items-center justify-between text-sm">
+                <button
+                  type="button"
+                  onClick={() => { setStep('form'); setCode(''); setError(''); setInfo('') }}
+                  className="text-gray-500 hover:underline"
+                >
+                  ← Volver
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={loading}
+                  className="text-green-600 hover:underline font-medium disabled:opacity-50"
+                >
+                  Reenviar código
+                </button>
+              </div>
+            </form>
+          ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Datos de la empresa</p>
 
@@ -171,9 +259,10 @@ export default function RegisterPage() {
               disabled={loading}
               className="w-full bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {loading ? 'Creando organización...' : 'Crear organización'}
+              {loading ? 'Enviando código...' : 'Continuar'}
             </button>
           </form>
+          )}
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-4">

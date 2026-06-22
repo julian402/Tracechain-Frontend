@@ -1,16 +1,19 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../hooks/useAuth'
-import { login } from '../../api/auth'
+import { login, verifyOtp, resendOtp } from '../../api/auth'
 import { PasswordInput } from '../../components/ui/PasswordInput'
 import { EMAIL_PATTERN, validateEmail } from '../../lib/validation'
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const { setAuth } = useAuth()
+  const [step, setStep] = useState<'credentials' | 'otp'>('credentials')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [code, setCode] = useState('')
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -22,11 +25,44 @@ export default function LoginPage() {
     }
     setLoading(true)
     try {
-      const data = await login(email, password)
+      await login(email, password)
+      setStep('otp')
+      setInfo('Te enviamos un código de verificación a tu correo. Vence en 10 minutos.')
+    } catch {
+      setError('Credenciales inválidas. Verifica tu email y contraseña.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (!/^\d{6}$/.test(code)) {
+      setError('El código debe tener 6 dígitos.')
+      return
+    }
+    setLoading(true)
+    try {
+      const data = await verifyOtp(email, code)
       setAuth(data.user, data.token, data.organization, data.permissions)
       navigate('/dashboard')
     } catch {
-      setError('Credenciales inválidas. Verifica tu email y contraseña.')
+      setError('Código inválido o expirado. Solicita uno nuevo si es necesario.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleResend = async () => {
+    setError('')
+    setInfo('')
+    setLoading(true)
+    try {
+      await resendOtp(email)
+      setInfo('Te enviamos un nuevo código a tu correo.')
+    } catch {
+      setError('No se pudo reenviar el código. Intenta de nuevo.')
     } finally {
       setLoading(false)
     }
@@ -49,52 +85,109 @@ export default function LoginPage() {
 
         {/* Card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-6">Iniciar sesión</h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-6">
+            {step === 'credentials' ? 'Iniciar sesión' : 'Verificación en dos pasos'}
+          </h2>
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
               {error}
             </div>
           )}
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Correo electrónico
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                pattern={EMAIL_PATTERN.source}
-                placeholder="admin@tracechain.com"
-                title="Ingresa un correo válido, por ejemplo admin@empresa.com"
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-              />
+          {info && !error && (
+            <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg text-green-700 text-sm">
+              {info}
             </div>
+          )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Contraseña
-              </label>
-              <PasswordInput
-                value={password}
-                onChange={setPassword}
-                required
-                placeholder="••••••••"
-                autoComplete="current-password"
-              />
-            </div>
+          {step === 'credentials' ? (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Correo electrónico
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  pattern={EMAIL_PATTERN.source}
+                  placeholder="admin@tracechain.com"
+                  title="Ingresa un correo válido, por ejemplo admin@empresa.com"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? 'Iniciando sesión...' : 'Iniciar sesión'}
-            </button>
-          </form>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contraseña
+                </label>
+                <PasswordInput
+                  value={password}
+                  onChange={setPassword}
+                  required
+                  placeholder="••••••••"
+                  autoComplete="current-password"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? 'Verificando...' : 'Continuar'}
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerify} className="space-y-4">
+              <p className="text-sm text-gray-500">
+                Ingresa el código de 6 dígitos que enviamos a <span className="font-medium text-gray-700">{email}</span>.
+              </p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Código de verificación
+                </label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={code}
+                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                  required
+                  placeholder="••••••"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-center text-lg tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {loading ? 'Verificando...' : 'Verificar e ingresar'}
+              </button>
+
+              <div className="flex items-center justify-between text-sm">
+                <button
+                  type="button"
+                  onClick={() => { setStep('credentials'); setCode(''); setError(''); setInfo('') }}
+                  className="text-gray-500 hover:underline"
+                >
+                  ← Cambiar cuenta
+                </button>
+                <button
+                  type="button"
+                  onClick={handleResend}
+                  disabled={loading}
+                  className="text-green-600 hover:underline font-medium disabled:opacity-50"
+                >
+                  Reenviar código
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         <p className="text-center text-sm text-gray-500 mt-4">

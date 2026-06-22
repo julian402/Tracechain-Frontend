@@ -1,5 +1,5 @@
 import client from './client'
-import type { ApiResponse, Inspection } from '../types'
+import type { ApiResponse, Inspection, VisitStatus } from '../types'
 
 export interface Finding {
   type: 'NO_CONFORMIDAD' | 'OBSERVACION' | 'OPORTUNIDAD'
@@ -17,7 +17,7 @@ export interface CreateVisitPayload {
   auditorName: string
   auditedProcess?: string
   objective?: string
-  responsible?: string
+  responsibleId?: string
   commitmentDate?: string
   correctiveActions?: string
   lotId?: string
@@ -29,7 +29,19 @@ export const createInspection = async (data: CreateVisitPayload) => {
   return res.data.data
 }
 
-export const getInspections = async (): Promise<Inspection[]> => {
-  const res = await client.get<ApiResponse<Inspection[]>>('/inspections')
+export const getInspections = async (params: { status?: VisitStatus; mine?: boolean } = {}): Promise<Inspection[]> => {
+  const res = await client.get<ApiResponse<Inspection[]>>('/inspections', {
+    params: { ...(params.status && { status: params.status }), ...(params.mine && { mine: 'true' }) },
+  })
+  return res.data.data
+}
+
+export const getInspectionById = async (id: string): Promise<Inspection> => {
+  const res = await client.get<ApiResponse<Inspection>>(`/inspections/${id}`)
+  return res.data.data
+}
+
+export const updateInspectionStatus = async (id: string, status: VisitStatus) => {
+  const res = await client.patch<ApiResponse<Inspection>>(`/inspections/${id}/status`, { status })
   return res.data.data
 }

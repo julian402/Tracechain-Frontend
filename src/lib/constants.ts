@@ -101,3 +101,15 @@ export const PRIORITY_COLORS: Record<string, string> = {
   MEDIA: 'bg-yellow-100 text-yellow-700',
   BAJA: 'bg-green-100 text-green-700',
 }
+
+export const VISIT_STATUS_LABELS: Record<string, string> = {
+  PENDIENTE: 'Pendiente',
+  EN_CURSO: 'En curso',
+  RESUELTO: 'Resuelto',
+}
+
+export const VISIT_STATUS_COLORS: Record<string, string> = {
+  PENDIENTE: 'bg-yellow-100 text-yellow-700',
+  EN_CURSO: 'bg-blue-100 text-blue-700',
+  RESUELTO: 'bg-green-100 text-green-700',
+}

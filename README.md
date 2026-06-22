@@ -6,7 +6,8 @@ Este repositorio contiene la aplicación cliente construida con React, TypeScrip
 
 ## Qué permite hacer
 
-- Registrar e iniciar sesión con una organización.
+- Registrar una organización con verificación de correo por código (la organización se crea solo al confirmar el código).
+- Iniciar sesión con verificación en dos pasos (código enviado al correo).
 - Administrar lotes agroalimentarios con información sanitaria, fechas, cantidades y estado.
 - Consultar el detalle de un lote, su código QR y su historial público.
 - Registrar movimientos de trazabilidad: creación, traslado, transformación, división, mezcla y cambio de estado.
@@ -14,7 +15,8 @@ Este repositorio contiene la aplicación cliente construida con React, TypeScrip
 - Gestionar usuarios, roles y permisos por organización.
 - Gestionar organizaciones, planes y usuarios globales como super admin.
 - Personalizar cupos de organizaciones sin depender únicamente del plan base.
-- Registrar inspecciones, auditorías y hallazgos.
+- Registrar inspecciones, auditorías y hallazgos, con responsable asignado, estado de seguimiento, vista de detalle y filtro de "mis pendientes".
+- Gestionar inventario de materias primas y proveedores, y enlazar materias primas usadas al crear un lote para trazabilidad de producto a insumo.
 - Exportar reportes desde las pestañas de lotes y movimientos.
 - Preparar la vista de analítica para integración con Apache Superset.
 - Usar una interfaz responsive con sidebar colapsable, drawer móvil, modales reutilizables y tablas adaptadas.
@@ -48,11 +50,13 @@ src/
 ├── lib/                 # Validación, errores API, constantes, toasts
 ├── pages/
 │   ├── admin/           # Organizaciones, usuarios globales, planes
-│   ├── auth/            # Login y registro de organización
+│   ├── auth/            # Login (2FA) y registro con verificación de correo
 │   ├── billing/         # Mi organización y uso del plan
 │   ├── dashboard/       # KPIs y gráficos
-│   ├── lots/            # Lotes y detalle
+│   ├── lots/            # Lotes y detalle (con ingredientes/proveedor)
 │   ├── movements/       # Movimientos
+│   ├── inspections/     # Inspecciones, detalle, responsable y estado
+│   ├── inventory/       # Materias primas y proveedores
 │   ├── reports/         # Analítica / Superset
 │   ├── roles/           # Roles, permisos y usuarios por rol
 │   └── public/          # Vista pública por QR
@@ -66,14 +70,16 @@ src/
 
 | Ruta | Descripción |
 |---|---|
-| `/login` | Inicio de sesión |
-| `/register` | Registro de organización y administrador |
+| `/login` | Inicio de sesión con verificación en dos pasos |
+| `/register` | Registro de organización con verificación de correo |
 | `/dashboard` | Dashboard operativo |
 | `/lots` | Listado, filtros, creación y exportación de lotes |
-| `/lots/:id` | Detalle, edición y QR del lote |
+| `/lots/:id` | Detalle, edición, QR y trazabilidad de ingredientes del lote |
 | `/movements` | Movimientos, filtros y exportación |
 | `/audit` | Bitácora de auditoría |
-| `/inspections` | Inspecciones y hallazgos |
+| `/inspections` | Inspecciones, hallazgos, responsable y filtros de estado |
+| `/inspections/:id` | Detalle de inspección y cambio de estado de seguimiento |
+| `/inventory` | Materias primas y proveedores |
 | `/users` | Usuarios de la organización |
 | `/reports` | Analítica / integración Superset |
 | `/profile` | Perfil del usuario |

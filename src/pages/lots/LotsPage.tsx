@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient, keepPreviousData } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { getLots, createLot } from '../../api/lots'
+import { getSuppliers } from '../../api/suppliers'
+import { getRawMaterials } from '../../api/rawMaterials'
 import { downloadLotsCSV, downloadLotsPDF } from '../../api/reports'
 import { usePermissions } from '../../hooks/usePermissions'
 import { useAuth } from '../../hooks/useAuth'
@@ -27,8 +29,17 @@ const initialForm = {
   storageTemp: '',
   storageHumidity: '',
   notes: '',
-  parentLotId: ''
+  parentLotId: '',
+  supplierId: ''
 }
+
+interface IngredientRow {
+  rawMaterialBatchId: string
+  quantityUsed: string
+  unit: string
+}
+
+const emptyIngredient: IngredientRow = { rawMaterialBatchId: '', quantityUsed: '', unit: 'kg' }
 
 export default function LotsPage() {
   const navigate = useNavigate()
@@ -40,6 +51,7 @@ export default function LotsPage() {
   const [page, setPage] = useState(1)
   const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState(initialForm)
+  const [ingredients, setIngredients] = useState<IngredientRow[]>([])
   const [formError, setFormError] = useState('')
   const reportsEnabled = isSuperAdmin || (organization?.plan?.features as Record<string, boolean> | undefined)?.reports === true
 
@@ -48,6 +60,9 @@ export default function LotsPage() {
     queryFn: () => getLots({ page, limit: PAGE_SIZE, search: search || undefined, status: status || undefined }),
     placeholderData: keepPreviousData,
   })
+
+  const { data: suppliers = [] } = useQuery({ queryKey: ['suppliers'], queryFn: getSuppliers, enabled: can('inventory:read') })
+  const { data: rawMaterials = [] } = useQuery({ queryKey: ['rawMaterials'], queryFn: getRawMaterials, enabled: can('inventory:read') })
 
   const lots = data?.data ?? []
   const totalLots = data?.total ?? 0
@@ -65,6 +80,7 @@ export default function LotsPage() {
       queryClient.invalidateQueries({ queryKey: ['dashboard'] })
       setShowForm(false)
       setForm(initialForm)
+      setIngredients([])
       setFormError('')
       notify.lotCreated()
     },
@@ -74,9 +90,17 @@ export default function LotsPage() {
     }
   })
 
+  const addIngredient = () => setIngredients((prev) => [...prev, { ...emptyIngredient }])
+  const removeIngredient = (i: number) => setIngredients((prev) => prev.filter((_, idx) => idx !== i))
+  const updateIngredient = (i: number, field: keyof IngredientRow, value: string) =>
+    setIngredients((prev) => prev.map((row, idx) => (idx === i ? { ...row, [field]: value } : row)))
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     setFormError('')
+    const validIngredients = ingredients
+      .filter((i) => i.rawMaterialBatchId && i.quantityUsed)
+      .map((i) => ({ rawMaterialBatchId: i.rawMaterialBatchId, quantityUsed: Number(i.quantityUsed), unit: i.unit }))
     createMutation.mutate({
       name: form.name,
       quantity: Number(form.quantity),
@@ -87,7 +111,9 @@ export default function LotsPage() {
       storageTemp: form.storageTemp ? Number(form.storageTemp) : undefined,
       storageHumidity: form.storageHumidity ? Number(form.storageHumidity) : undefined,
       notes: form.notes || undefined,
-      parentLotId: form.parentLotId || undefined
+      parentLotId: form.parentLotId || undefined,
+      supplierId: form.supplierId || undefined,
+      ...(validIngredients.length ? { ingredients: validIngredients } : {}),
     })
   }
 
@@ -329,6 +355,87 @@ export default function LotsPage() {
                   placeholder="UUID del lote padre (opcional)"
                 />
               </div>
+
+              {can('inventory:read') && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Proveedor del producto</label>
+                    <select
+                      value={form.supplierId}
+                      onChange={(e) => setForm({ ...form, supplierId: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">Sin proveedor</option>
+                      {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+
+                  {/* Materias primas usadas (trazabilidad de elaboración) */}
+                  <div className="border border-gray-200 rounded-xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-700">Materias primas utilizadas</p>
+                        <p className="text-xs text-gray-400">Detalle de elaboración (ej. mezcal con sus insumos)</p>
+                      </div>
+                      <button type="button" onClick={addIngredient} className="text-sm text-green-600 font-medium hover:text-green-700">
+                        + Agregar
+                      </button>
+                    </div>
+                    {ingredients.length === 0 && (
+                      <p className="text-xs text-gray-400">No se han agregado materias primas.</p>
+                    )}
+                    {ingredients.map((ing, i) => (
+                      <div key={i} className="grid grid-cols-12 gap-2 items-end">
+                        <div className="col-span-6">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Materia prima</label>
+                          <select
+                            value={ing.rawMaterialBatchId}
+                            onChange={(e) => updateIngredient(i, 'rawMaterialBatchId', e.target.value)}
+                            className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                          >
+                            <option value="">Seleccionar…</option>
+                            {rawMaterials.map((rm) => (
+                              <option key={rm.id} value={rm.id}>
+                                {rm.name}{rm.batchNumber ? ` (${rm.batchNumber})` : ''}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="col-span-3">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Cantidad</label>
+                          <input
+                            type="number" step="any" min="0"
+                            value={ing.quantityUsed}
+                            onChange={(e) => updateIngredient(i, 'quantityUsed', e.target.value)}
+                            className="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                          />
+                        </div>
+                        <div className="col-span-2">
+                          <label className="block text-xs font-medium text-gray-500 mb-1">Unidad</label>
+                          <select
+                            value={ing.unit}
+                            onChange={(e) => updateIngredient(i, 'unit', e.target.value)}
+                            className="w-full px-1 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                          >
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="L">L</option>
+                            <option value="mL">mL</option>
+                            <option value="unidades">u</option>
+                          </select>
+                        </div>
+                        <div className="col-span-1">
+                          <button type="button" onClick={() => removeIngredient(i)} className="text-red-500 hover:text-red-700 text-sm pb-2">✕</button>
+                        </div>
+                      </div>
+                    ))}
+                    {can('inventory:read') && rawMaterials.length === 0 && (
+                      <p className="text-xs text-amber-600">No hay materias primas en inventario. Regístralas en Inventario → Materias primas.</p>
+                    )}
+                  </div>
+                </>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Notas</label>
                 <textarea

@@ -17,6 +17,8 @@ const LotDetailPage   = lazy(() => import('./pages/lots/LotDetailPage'))
 const MovementsPage   = lazy(() => import('./pages/movements/MovementsPage'))
 const AuditPage       = lazy(() => import('./pages/audit/AuditPage'))
 const InspectionsPage = lazy(() => import('./pages/inspections/InspectionsPage'))
+const InspectionDetailPage = lazy(() => import('./pages/inspections/InspectionDetailPage'))
+const InventoryPage   = lazy(() => import('./pages/inventory/InventoryPage'))
 const UsersPage       = lazy(() => import('./pages/users/UsersPage'))
 const ProfilePage     = lazy(() => import('./pages/profile/ProfilePage'))
 const ReportsPage     = lazy(() => import('./pages/reports/ReportsPage'))
@@ -95,6 +97,16 @@ function App() {
                 <Route path="movements"   element={<MovementsPage />} />
                 <Route path="audit"       element={<AuditPage />} />
                 <Route path="inspections" element={<InspectionsPage />} />
+                <Route path="inspections/:id" element={
+                  <PermissionRoute permission="inspections:read">
+                    <InspectionDetailPage />
+                  </PermissionRoute>
+                } />
+                <Route path="inventory" element={
+                  <PermissionRoute permission="inventory:read">
+                    <InventoryPage />
+                  </PermissionRoute>
+                } />
                 <Route path="profile"     element={<ProfilePage />} />
                 <Route path="reports" element={<ReportsPage />} />
                 <Route path="users" element={

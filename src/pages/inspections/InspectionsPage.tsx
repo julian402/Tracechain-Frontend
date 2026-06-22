@@ -1,13 +1,17 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createInspection, getInspections, type Finding, type CreateVisitPayload } from '../../api/inspections'
 import { getLots } from '../../api/lots'
+import { getUsers } from '../../api/users'
+import type { VisitStatus } from '../../types'
 import { notify } from '../../lib/toast'
 import { TableRowSkeleton } from '../../components/ui/Skeleton'
 import { Badge } from '../../components/ui/Badge'
 import { EmptyState } from '../../components/ui/EmptyState'
 import {
-  VISIT_TYPE_LABELS, FINDING_TYPE_LABELS, PRIORITY_LABELS, PRIORITY_COLORS
+  VISIT_TYPE_LABELS, FINDING_TYPE_LABELS, PRIORITY_LABELS, PRIORITY_COLORS,
+  VISIT_STATUS_LABELS, VISIT_STATUS_COLORS
 } from '../../lib/constants'
 
 const steps = ['Datos generales', 'Hallazgos', 'Compromisos', 'Envío']
@@ -28,7 +32,7 @@ const initialForm: CreateVisitPayload = {
   auditorName: '',
   auditedProcess: '',
   objective: '',
-  responsible: '',
+  responsibleId: '',
   commitmentDate: '',
   correctiveActions: '',
   lotId: '',
@@ -42,10 +46,12 @@ export default function InspectionsPage() {
   const [currentStep, setCurrentStep] = useState(0)
   const [form, setForm] = useState<CreateVisitPayload>(initialForm)
   const [success, setSuccess] = useState(false)
+  const [statusFilter, setStatusFilter] = useState<VisitStatus | ''>('')
+  const [mine, setMine] = useState(false)
 
   const { data: inspections = [], isLoading } = useQuery({
-    queryKey: ['inspections'],
-    queryFn: getInspections
+    queryKey: ['inspections', statusFilter, mine],
+    queryFn: () => getInspections({ status: statusFilter || undefined, mine })
   })
 
   const { data: lotsData } = useQuery({
@@ -53,6 +59,11 @@ export default function InspectionsPage() {
     queryFn: () => getLots({ limit: 200 }),
   })
   const lots = lotsData?.data ?? []
+
+  const { data: users = [] } = useQuery({
+    queryKey: ['users'],
+    queryFn: getUsers,
+  })
 
   const mutation = useMutation({
     mutationFn: createInspection,
@@ -90,7 +101,7 @@ export default function InspectionsPage() {
       actReference: form.actReference || undefined,
       auditedProcess: form.auditedProcess || undefined,
       objective: form.objective || undefined,
-      responsible: form.responsible || undefined,
+      responsibleId: form.responsibleId || undefined,
       commitmentDate: form.commitmentDate || undefined,
       correctiveActions: form.correctiveActions || undefined,
       findings: form.findings.map(f => ({
@@ -125,19 +136,42 @@ export default function InspectionsPage() {
         </button>
       </div>
 
+      {/* Filtros */}
+      <div className="flex flex-wrap items-center gap-3">
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value as VisitStatus | '')}
+          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+        >
+          <option value="">Todos los estados</option>
+          {Object.entries(VISIT_STATUS_LABELS).map(([v, l]) => (
+            <option key={v} value={v}>{l}</option>
+          ))}
+        </select>
+        <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={mine}
+            onChange={(e) => setMine(e.target.checked)}
+            className="rounded border-gray-300 text-green-600 focus:ring-green-500"
+          />
+          Solo mis pendientes
+        </label>
+      </div>
+
       {/* Lista de inspecciones */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         {isLoading ? (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                {['Tipo', 'Entidad auditora', 'Auditor', 'Lote', 'Hallazgos', 'Fecha'].map((h) => (
-                  <th key={h} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
+                {['Tipo', 'Estado', 'Entidad auditora', 'Responsable', 'Lote', 'Hallazgos', 'Fecha', ''].map((h, i) => (
+                  <th key={i} className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={6} />)}
+              {Array.from({ length: 4 }).map((_, i) => <TableRowSkeleton key={i} cols={8} />)}
             </tbody>
           </table>
         ) : inspections.length === 0 ? (
@@ -147,11 +181,13 @@ export default function InspectionsPage() {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Tipo</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Estado</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Entidad auditora</th>
-                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Auditor</th>
+                <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Responsable</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Lote</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Hallazgos</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -162,8 +198,13 @@ export default function InspectionsPage() {
                       {VISIT_TYPE_LABELS[inspection.visitType]}
                     </Badge>
                   </td>
+                  <td className="px-4 py-3">
+                    <Badge color={VISIT_STATUS_COLORS[inspection.status] ?? 'bg-gray-100 text-gray-700'}>
+                      {VISIT_STATUS_LABELS[inspection.status] ?? inspection.status}
+                    </Badge>
+                  </td>
                   <td className="px-4 py-3 text-gray-700">{inspection.auditorEntity}</td>
-                  <td className="px-4 py-3 text-gray-600">{inspection.auditorName}</td>
+                  <td className="px-4 py-3 text-gray-600">{inspection.responsible?.name ?? '—'}</td>
                   <td className="px-4 py-3 text-xs font-mono text-gray-500">
                     {inspection.lot?.code ?? '—'}
                   </td>
@@ -174,6 +215,11 @@ export default function InspectionsPage() {
                   </td>
                   <td className="px-4 py-3 text-xs text-gray-500">
                     {new Date(inspection.visitDate).toLocaleDateString('es-CO')}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <Link to={`/inspections/${inspection.id}`} className="text-green-600 hover:underline text-sm font-medium">
+                      Ver detalle
+                    </Link>
                   </td>
                 </tr>
               ))}
@@ -419,12 +465,18 @@ export default function InspectionsPage() {
                     <div className="space-y-4">
                       <h3 className="font-medium text-gray-900">Plan de acción / compromisos</h3>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Responsable</label>
-                        <input
-                          value={form.responsible}
-                          onChange={(e) => setForm({ ...form, responsible: e.target.value })}
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Responsable (usuario de la organización)</label>
+                        <select
+                          value={form.responsibleId}
+                          onChange={(e) => setForm({ ...form, responsibleId: e.target.value })}
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-                        />
+                        >
+                          <option value="">Sin responsable asignado</option>
+                          {users.map((u) => (
+                            <option key={u.id} value={u.id}>{u.name} — {u.email}</option>
+                          ))}
+                        </select>
+                        <p className="text-xs text-gray-400 mt-1">El responsable recibirá un correo con el detalle de la inspección.</p>
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Fecha compromiso</label>
@@ -472,10 +524,10 @@ export default function InspectionsPage() {
                           <span className="text-gray-500">Hallazgos</span>
                           <span className="font-medium">{form.findings.length}</span>
                         </div>
-                        {form.responsible && (
+                        {form.responsibleId && (
                           <div className="flex justify-between">
                             <span className="text-gray-500">Responsable</span>
-                            <span className="font-medium">{form.responsible}</span>
+                            <span className="font-medium">{users.find((u) => u.id === form.responsibleId)?.name ?? '—'}</span>
                           </div>
                         )}
                       </div>

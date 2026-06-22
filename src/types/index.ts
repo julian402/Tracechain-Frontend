@@ -65,6 +65,9 @@ export interface Lot {
   storageHumidity?: number
   notes?: string
   parentLotId?: string
+  supplierId?: string | null
+  supplier?: Pick<Supplier, 'id' | 'name'> | null
+  ingredients?: LotIngredient[]
   createdById: string
   createdBy?: Pick<User, 'id' | 'name' | 'email'>
   createdAt: string
@@ -72,6 +75,47 @@ export interface Lot {
   movements?: Movement[]
   childLots?: Lot[]
   parentLot?: Lot
+}
+
+export interface Supplier {
+  id: string
+  name: string
+  taxId?: string | null
+  contact?: string | null
+  phone?: string | null
+  email?: string | null
+  notes?: string | null
+  organizationId?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface RawMaterialBatch {
+  id: string
+  name: string
+  batchNumber?: string | null
+  quantity: number
+  unit: string
+  receivedDate?: string | null
+  expirationDate?: string | null
+  notes?: string | null
+  supplierId?: string | null
+  supplier?: Pick<Supplier, 'id' | 'name'> | null
+  createdById?: string
+  createdBy?: Pick<User, 'id' | 'name' | 'email'>
+  createdAt: string
+  updatedAt: string
+  usedIn?: Array<{ id: string; quantityUsed: number; unit: string; lot?: Pick<Lot, 'id' | 'code' | 'name'> }>
+}
+
+export interface LotIngredient {
+  id: string
+  quantityUsed: number
+  unit: string
+  rawMaterialBatchId: string
+  rawMaterialBatch?: Pick<RawMaterialBatch, 'id' | 'name' | 'batchNumber' | 'expirationDate'> & {
+    supplier?: Pick<Supplier, 'id' | 'name'> | null
+  }
 }
 
 export interface Movement {
@@ -116,6 +160,8 @@ export interface DashboardStats {
   lotsByMonth: { mes: string; lotes: number }[]
 }
 
+export type VisitStatus = 'PENDIENTE' | 'EN_CURSO' | 'RESUELTO'
+
 export interface Inspection {
   id: string
   visitType: 'AUDITORIA' | 'INTERVENTORIA' | 'INSPECCION'
@@ -125,7 +171,9 @@ export interface Inspection {
   auditorName: string
   auditedProcess?: string
   objective?: string
-  responsible?: string
+  status: VisitStatus
+  responsibleId?: string | null
+  responsible?: Pick<User, 'id' | 'name' | 'email'> | null
   commitmentDate?: string
   correctiveActions?: string
   lotId?: string
@@ -137,8 +185,10 @@ export interface Inspection {
     criteria?: string
     description: string
     deadline?: string
+    createdAt?: string
   }>
   createdById: string
+  createdBy?: Pick<User, 'id' | 'name' | 'email'>
   createdAt: string
   updatedAt: string
 }
